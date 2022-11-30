@@ -473,7 +473,7 @@ class Forest:
         width = max(n._offset for n in self.id_to_node.values()) + 1
         return (width, height)
 
-def make_forest_from_haydens_json_graph(json_graph, label_assignment=None):
+def make_forest_from_haydens_json_graph(json_graph, label_assignment=None, verbose=False):
     """
     Read a JSON dump of matlab graph similar to "Gata6Nanog1.json".
     Return a forest.
@@ -512,7 +512,8 @@ def make_forest_from_haydens_json_graph(json_graph, label_assignment=None):
                 label = assigned
                 #print(s, "assigned to", assigned)
             else:
-                print ("no label assigned for node", s)
+                if verbose:
+                    print ("no correction label assigned for node", s)
                 pass
         n = result.add_node(s, ts, label)
         node_map[s] = n
