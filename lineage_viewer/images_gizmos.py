@@ -109,6 +109,7 @@ class CompareTimeStamps:
         self.slicing = None
         self.theta = 0
         self.phi = 0
+        self.gamma = 0
         self.label_select_callback = None
 
     def get_sliders(self, side):
@@ -131,6 +132,15 @@ class CompareTimeStamps:
             step=0.02, 
             on_change=self.project_and_display)
         self.phi_slider.resize(height=side)
+        self.gamma_slider = Slider(
+            title="gamma", 
+            orientation="vertical",
+            value=0, 
+            minimum=-limit, 
+            maximum=+limit, 
+            step=0.02, 
+            on_change=self.project_and_display)
+        self.gamma_slider.resize(height=side)
         # dummy values for now
         I = 100
         self.I_slider = RangeSlider(
@@ -169,7 +179,8 @@ class CompareTimeStamps:
         return [
             [
                 ["ϕ", self.phi_slider],
-                ["θ", self.theta_slider]
+                ["θ", self.theta_slider],
+                ["γ", self.gamma_slider],
             ],
             [ 
                 ["I", self.I_slider],
@@ -225,6 +236,7 @@ class CompareTimeStamps:
     def project_and_display(self, *ignored):
         self.theta = self.theta_slider.value
         self.phi = self.phi_slider.value
+        self.gamma = self.gamma_slider.value
         s = [
             self.I_slider.values,
             self.J_slider.values,
@@ -258,7 +270,7 @@ class CompareTimeStamps:
         if sl is not None:
             simg = operations3d.slice3(img, sl)
         buffer = operations3d.rotation_buffer(simg)
-        rbuffer = operations3d.rotate3d(buffer, self.theta, self.phi)
+        rbuffer = operations3d.rotate3d(buffer, self.theta, self.phi, self.gamma)
         return rbuffer
 
 class ImageAndLabels2d:
