@@ -8,9 +8,25 @@ from lineage_viewer import images_gizmos
 from H5Gizmos import serve
 import json
 
+# get the label assignment
+ass_file = open("nuc_to_cells.csv")
+assignment = {}
+ignore_headers = ass_file.readline()
+while 1:
+    line = ass_file.readline()
+    if not line:
+        break
+    [stack, identity, label_string] = line.strip().split(",")
+    print (repr(label_string))
+    if label_string:
+        label = int(float(label_string))
+    assignment[identity] = label
+
+print(assignment)
+
 fn = "Combined.json"
 json_ob = json.load(open(fn))
-F = lineage_forest.make_forest_from_haydens_json_graph(json_ob)
+F = lineage_forest.make_forest_from_haydens_json_graph(json_ob, label_assignment=assignment)
 
 trivialize = False
 
