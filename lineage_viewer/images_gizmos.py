@@ -284,6 +284,7 @@ class ImageAndLabels2d:
         #self.timestamp = timestamp
         self.image_display = Image(height=side, width=side)
         self.labels_display = Image(height=side, width=side)
+        self.focus_label = None
         displays = Shelf([
             self.image_display,
             self.labels_display,
@@ -402,7 +403,8 @@ class ImageAndLabels2d:
         label = labels[row, column]
         node = None
         self.focus_label = None
-        self.focus_color = None
+        white = [233,213,255]
+        self.focus_color = white
         self.info("clicked label: %s for node %s" % (label, node))
         if label:
             node = self.timestamp.label_to_node.get(label)
@@ -416,6 +418,17 @@ class ImageAndLabels2d:
         callback = self.on_label_select_callback
         if callback:
             callback(self.focus_label)
+        # reset the focus if needed
+        redisplay = False
+        if label and self.focus_label is None:
+            self.focus_label = label
+            redisplay = True
+        if self.focus_color is None:
+            self.focus_color = white
+            redisplay = True
+        if redisplay:
+            self.create_mask()
+            self.display_images()
 
     def focus_on_node(self, node):
         self.focus_label = None
@@ -430,10 +443,11 @@ class ImageAndLabels2d:
         if label is None or labels is None:
             self.focus_mask = None
             return
-        node = self.timestamp.label_to_node[label]
-        assert node.color_array is not None, "color not assigned to node: " + repr(node)
+        node = self.timestamp.label_to_node.get(label)
+        if node is not None:
+            assert node.color_array is not None, "color not assigned to node: " + repr(node)
+            self.focus_color = node.color_array
         self.focus_mask = colorizers.boundary_image(labels, label)
-        self.focus_color = node.color_array
 
     def clear_images(self):
         self.load_images(None, None)
