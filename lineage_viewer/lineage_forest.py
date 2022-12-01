@@ -189,7 +189,8 @@ class TimeStamp(NodeGroup):
     def check_node(self, node):
         ord = self.ordinal
         assert ord == node.timestamp_ordinal, "node not in timestamp: " + repr([ord, node])
-        self.label_to_node[node.label] = node
+        if node.label is not None:
+            self.label_to_node[node.label] = node
 
     def farthest_parent_ordinal(self):
         result = self.ordinal
@@ -498,14 +499,14 @@ def make_forest_from_haydens_json_graph(json_graph, label_assignment=None, verbo
         all_ids.add(parent_id)
         all_ids.add(child_id)
         parent_map[child_id] = parent_id
-    parsed_strings = {}
+    #parsed_strings = {}
     timestamps = set()
     node_map = {}
     for s in all_ids:
         [ts_string, label_string] = s.split("_")
         parsed = (ts, label) = (int(ts_string), int(label_string))
         timestamps.add(ts)
-        parsed_strings[s] = parsed
+        #parsed_strings[s] = parsed
         if label_assignment is not None:
             assigned = label_assignment.get(s)
             if assigned is not None:
@@ -514,7 +515,7 @@ def make_forest_from_haydens_json_graph(json_graph, label_assignment=None, verbo
             else:
                 if verbose:
                     print ("no correction label assigned for node", s)
-                pass
+                label = None
         n = result.add_node(s, ts, label)
         node_map[s] = n
     for (child_id, parent_id) in parent_map.items():
