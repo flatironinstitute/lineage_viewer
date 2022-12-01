@@ -401,15 +401,15 @@ class ImageAndLabels2d:
             return 
         label = labels[row, column]
         node = None
+        self.focus_label = None
+        self.focus_color = None
         self.info("clicked label: %s for node %s" % (label, node))
         if label:
-            node = self.timestamp.label_to_node[label]
+            node = self.timestamp.label_to_node.get(label)
             self.info("clicked label: %s for node %s" % (label, node))
             self.focus_label = label
+        if node:
             self.focus_color = node.color_array
-        else:
-            self.focus_label = None
-            self.focus_color = None
         # comparison display is triggerred by callback below.
         #if self.comparison is not None:
         #    self.comparison.display_images()
