@@ -203,11 +203,14 @@ class TimeStamp(NodeGroup):
 
     def color_mapping_array(self, maxlabel=None):
         l2n = self.label_to_node
-        max_node_label = max(l2n.keys())
-        if maxlabel is None:
-            maxlabel = max_node_label
-        else:
-            maxlabel = max(maxlabel, max_node_label)
+        if l2n:
+            max_node_label = max(l2n.keys())
+            if maxlabel is None:
+                maxlabel = max_node_label
+            else:
+                maxlabel = max(maxlabel, max_node_label)
+        elif maxlabel is None:
+            maxlabel = 0
         result = np.zeros((maxlabel + 1, 3), dtype=np.ubyte)
         # map any unassigned labels to grey
         result[1:] = 128
