@@ -22,9 +22,13 @@ class LineageViewer:
         self.lineage = lineage_gizmo.LineageDisplay(2.5 * side, 2 * side, colorize=colorize)
         self.detail = lineage_gizmo.TimeSliceDetail(height=side * 0.3, width=5*side)
         self.info_area = Text("Data not yet loaded.")
+        self.reparent_button = Button("reparent")
+        self.disconnect_button = Button("disconnect")
+        misc_controls = [self.reparent_button, self.disconnect_button]
         self.gizmo = Stack([ 
             [self.compare.gizmo, self.lineage.gizmo],
             self.detail.gizmo,
+            misc_controls,
             self.info_area,
         ])
 
@@ -38,6 +42,47 @@ class LineageViewer:
         self.compare.configure_gizmo()
         self.compare.on_label_select(self.update_label_selection)
         self.detail.on_select_node(self.update_selected_ids)
+        self.reparent_button.set_on_click(self.reparent_click)
+        self.disconnect_button.set_on_click(self.disconnect_click)
+        self.reparent_button.set_enabled(False)
+        self.disconnect_button.set_enabled(False)
+
+    def reparent_click(self, *ignored):
+        self.info("reparent clicked.")
+        compare = self.compare
+        child_node = compare.child_display.focus_node()
+        parent_node = compare.parent_display.focus_node()
+        if child_node is None:
+            self.info("cannot reparent: no child selected.")
+        elif parent_node is None:
+            self.info("cannot reparent: no parent selected.")
+        else:
+            child_node.parent = parent_node
+            self.recalculate_forest()
+
+    def disconnect_click(self, *ignored):
+        self.info("disconnect clicked.")
+
+    def recalculate_forest(self):
+        compare = self.compare
+        child_display = compare.child_display
+        parent_display = compare.parent_display
+        child_ts = child_display.timestamp
+        #parent_ts = parent_display.timestamp
+        child_label = child_display.focus_label
+        parent_label = parent_display.focus_label
+        forest = self.forest.clean_clone()
+        #forest.reset()
+        forest.find_tracks_and_lineages()
+        forest.assign_offsets()
+        self.forest = forest
+        self.lineage.load_forest(forest)
+        self.compare.forest = forest
+        self.ts_select_callback(child_ts.ordinal)
+        self.lineage.focus_ts(child_ts.ordinal)
+        child_display.focus_label = child_label
+        parent_display.focus_label = parent_label
+        self.update_label_selection()
 
     def ts_select_callback(self, ordinal):
         self.info("ts selected: " + repr(ordinal))
@@ -77,6 +122,15 @@ class LineageViewer:
         compare.parent_display.focus_on_node(parent_node)
         compare.display_images()
         self.detail.update_selections(cid, pid)
+        # set buttons enabled or not
+        child_current_parent_id = None
+        if child_node is not None and child_node.parent is not None:
+            child_current_parent_id = child_node.parent.node_id
+        if parent_node is not None and parent_node.node_id != child_current_parent_id:
+            self.reparent_button.set_enabled(True)
+        else:
+            self.reparent_button.set_enabled(False)
+        self.disconnect_button.set_enabled(child_current_parent_id is not None)
 
 class CompareTimeStamps:
     """
