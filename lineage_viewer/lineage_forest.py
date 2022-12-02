@@ -400,10 +400,10 @@ class Forest:
             lineage.mark_isolated()
         isolated_roots = []
         for rootid in sorted(i2l.keys()):
+            lineage = i2l[rootid]
             if lineage.isolated():
                 isolated_roots.append(rootid)
             else:
-                lineage = i2l[rootid]
                 cursor = lineage.root.assign_offsets(cursor) + 1
         # set isolated offsets higher...
         for rootid in isolated_roots:
@@ -494,10 +494,13 @@ class Forest:
     def dimensions(self):
         # assuming timestamps start at 0 or 1
         height = max(self.ordinal_to_timestamp.keys()) + 1
-        width = max(n._offset for n in self.id_to_node.values()) + 1
+        non_isolated = [n for n in self.id_to_node.values() if not n._is_isolated]
+        width = 1
+        if len(non_isolated) > 0:
+            width = max(n._offset for n in non_isolated) + 1
         return (width, height)
 
-def make_forest_from_haydens_json_graph(json_graph, label_assignment=None, verbose=False):
+def make_forest_from_haydens_json_graph(json_graph, label_assignment=None, add_parents=True, verbose=False):
     """
     Read a JSON dump of matlab graph similar to "Gata6Nanog1.json".
     Return a forest.
@@ -541,10 +544,11 @@ def make_forest_from_haydens_json_graph(json_graph, label_assignment=None, verbo
                 label = None
         n = result.add_node(s, ts, label)
         node_map[s] = n
-    for (child_id, parent_id) in parent_map.items():
-        child = node_map[child_id]
-        parent = node_map[parent_id]
-        parent.set_child(child)
+    if add_parents:
+        for (child_id, parent_id) in parent_map.items():
+            child = node_map[child_id]
+            parent = node_map[parent_id]
+            parent.set_child(child)
     return result
 
 
