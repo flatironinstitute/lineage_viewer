@@ -62,6 +62,10 @@ class LineageDisplay(TimeSliceDetail):
         fjson = F.json_ob()
         self.load_json(fjson)
 
+    def focus_ts(self, ordinal):
+        "Set the timestamp focus in the view (with no callback)."
+        do(self.detail_link.focus_ts(ordinal, True))
+
 async def test_task():
     from H5Gizmos import Html
     greeting = Html("<h1>Hello</h1>")
