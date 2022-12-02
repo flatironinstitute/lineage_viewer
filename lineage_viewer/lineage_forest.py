@@ -21,6 +21,9 @@ class Node:
         self.id_to_child = {}
         self.reset()
 
+    def clean_clone(self):
+        return Node(self.node_id, self.timestamp_ordinal, self.label)
+
     def reset(self):
         self._track = None
         self._lineage_root = None
@@ -259,6 +262,23 @@ class Forest:
         self.label_volume_loader = None
         self.image_volume_loader = None
         self.reset()
+
+    def clean_clone(self):
+        result = Forest()
+        node_map = {}
+        for node in self.id_to_node.values():
+            node_id = node.node_id
+            new_node = result.add_node(node_id, node.timestamp_ordinal, node.label)
+            node_map[node_id] = new_node
+        for node in self.id_to_node.values():
+            if node.parent is not None:
+                pid = node.parent.node_id
+                new_node = node_map[node.node_id]
+                new_parent = node_map[pid]
+                new_parent.set_child(new_node)
+        result.label_volume_loader = self.label_volume_loader
+        result.image_volume_loader = self.image_volume_loader
+        return result
 
     def reset(self):
         for node in self.id_to_node.values():
