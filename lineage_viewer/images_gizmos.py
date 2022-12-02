@@ -62,6 +62,14 @@ class LineageViewer:
 
     def disconnect_click(self, *ignored):
         self.info("disconnect clicked.")
+        compare = self.compare
+        child_node = compare.child_display.focus_node()
+        current_parent = child_node.parent
+        if current_parent is None:
+            self.info("cannot disconnect -- node has no parent.")
+        else:
+            child_node.parent = None
+            self.recalculate_forest()
 
     def recalculate_forest(self):
         compare = self.compare
