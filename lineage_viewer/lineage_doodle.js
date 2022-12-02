@@ -137,18 +137,20 @@ class LineageDisplay {
         var nearest = this.nearest_ts(loc);
         this.focus_ts(nearest);
     };
-    focus_ts(nearest) {
+    focus_ts(nearest, no_callback) {
         this.select_rect.change({
             y: nearest,
             color: "black",
         })
         this.selected_ts = nearest;
         this.update_status();
-        var cb = this.selected_ts_callback;
-        if (cb) {
-            cb(nearest);
+        if (!no_callback) {
+            var cb = this.selected_ts_callback;
+            if (cb) {
+                cb(nearest);
+            }
+            this.keypress_target.focus();
         }
-        this.keypress_target.focus();
     };
     keypress_handler(event) {
         var num = event.which;
