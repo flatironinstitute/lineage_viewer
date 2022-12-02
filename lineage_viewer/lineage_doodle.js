@@ -58,6 +58,15 @@ class LineageDisplay {
             -1, json_ob.height + 1, json_ob.width + 1, -1,
         );
         self.frame = f;
+        // outline the event area
+        this.outline_rect = f.frame_rect({
+            color: "#777",
+            x: 0,
+            y: 0,
+            w: json_ob.width,
+            h: json_ob.height,
+            fill: false,
+        });
         var i2n = json_ob.id_to_node;
         for (var id in i2n) {
             var n = i2n[id];
