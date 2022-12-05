@@ -335,6 +335,13 @@ class CompareTimeStamps:
         rbuffer = operations3d.rotate3d(buffer, self.theta, self.phi, self.gamma)
         return rbuffer
 
+class CachedVolumeData:
+
+    def __init__(self, ordinal, label_volume, image_volume):
+        self.ordinal = ordinal
+        self.label_volume = label_volume
+        self.image_volume = image_volume
+
 class ImageAndLabels2d:
 
     """
@@ -360,6 +367,7 @@ class ImageAndLabels2d:
         self.img_volume = None
         self.label_volume = None
         self.on_label_select_callback = None
+        self.cached_volume_data = None
         self.reset(timestamp)
 
     def on_label_select(self, callback):
@@ -386,20 +394,25 @@ class ImageAndLabels2d:
         self.comparison = comparison
         if forest is not None and timestamp is not None:
             ordinal = timestamp.ordinal
-            label_volume = forest.load_labels_for_timestamp(ordinal)
-            if label_volume is None:
-                msg = "Timestamp %s has no label data" % ordinal
-                #print(msg)
-                self.info(msg)
+            cached = self.cached_volume_data
+            if cached and cached.ordinal == ordinal:
+                #print ("using cached volumes for", ordinal)
+                self.load_volumes(cached.label_volume, cached.image_volume)
             else:
-                image_volume = forest.load_image_for_timestamp(ordinal)
-                if image_volume is None:
-                    msg = "Timestamp %s has no image data" % ordinal
-                    print(msg)
+                label_volume = forest.load_labels_for_timestamp(ordinal)
+                if label_volume is None:
+                    msg = "Timestamp %s has no label data" % ordinal
+                    #print(msg)
                     self.info(msg)
                 else:
-                    self.info("Loaded timestamp " + repr(ordinal))
-                    self.load_volumes(label_volume, image_volume)
+                    image_volume = forest.load_image_for_timestamp(ordinal)
+                    if image_volume is None:
+                        msg = "Timestamp %s has no image data" % ordinal
+                        print(msg)
+                        self.info(msg)
+                    else:
+                        self.info("Loaded timestamp " + repr(ordinal))
+                        self.load_volumes(label_volume, image_volume)
 
     def focus_node(self):
         timestamp = self.timestamp
@@ -425,6 +438,7 @@ class ImageAndLabels2d:
         slicing = operations3d.positive_slicing(label_volume)
         self.label_volume = operations3d.slice3(label_volume, slicing)
         self.image_volume = operations3d.slice3(image_volume, slicing)
+        self.cached_volume_data = CachedVolumeData(self.timestamp.ordinal, label_volume, image_volume)
         # image enhancement
         if ENHANCE_CONTRAST:
             im = self.unenhanced_image_volume = self.image_volume
