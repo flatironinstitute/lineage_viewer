@@ -130,6 +130,7 @@ class LineageViewer:
         self.lineage.focus_ts(child_ts.ordinal)
         child_display.focus_label = child_label
         parent_display.focus_label = parent_label
+        child_display._focus_node = parent_display._focus_node = None
         self.update_label_selection()
 
     def ts_select_callback(self, ordinal):
@@ -394,6 +395,7 @@ class ImageAndLabels2d:
         self.image_display = Image(height=side, width=side)
         self.labels_display = Image(height=side, width=side)
         self.focus_label = None
+        self._focus_node = None
         displays = Shelf([
             self.image_display,
             self.labels_display,
@@ -421,6 +423,7 @@ class ImageAndLabels2d:
         self.focus_mask = None
         self.focus_color = None
         self.focus_label = None
+        self._focus_node = None
         self.compare_mask = None
         self.compare_color = None
         self.volume_shape = None
@@ -455,6 +458,8 @@ class ImageAndLabels2d:
                         self.load_volumes(label_volume, image_volume)
 
     def focus_node(self):
+        if self._focus_node is not None:
+            return self._focus_node
         timestamp = self.timestamp
         focus_label = self.focus_label
         if timestamp is not None and focus_label is not None:
@@ -519,6 +524,7 @@ class ImageAndLabels2d:
         label = labels[row, column]
         node = None
         self.focus_label = None
+        self._focus_node = None
         white = [233,213,255]
         self.focus_color = white
         self.info("clicked label: %s for node %s" % (label, node))
@@ -547,9 +553,11 @@ class ImageAndLabels2d:
             self.display_images()
 
     def focus_on_node(self, node):
+        self._focus_node = None
         self.focus_label = None
         self.focus_color = None
         if node is not None:
+            self._focus_node = node
             self.focus_label = node.label
             self.focus_color = node.color_array
 
