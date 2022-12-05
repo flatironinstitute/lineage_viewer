@@ -439,6 +439,21 @@ class Forest:
             id_to_node=id_to_node_json,
         )
 
+    def load_json(self, json_ob):
+        id_to_node_json = json_ob["id_to_node"]
+        for node_json in id_to_node_json.values():
+            node_id = node_json["identity"]
+            ordinal = node_json["timestamp_ordinal"]
+            label = node_json["label"]
+            self.add_node(node_id, ordinal, label)
+        for node_json in id_to_node_json.values():
+            parent_id = node_json["parent_id"]
+            if parent_id:
+                node_id = node_json["identity"]
+                node = self.id_to_node[node_id]
+                parent = self.id_to_node[parent_id]
+                parent.set_child(node)
+
     def timestamp_region_json(self, ordinal):
         """
         Node info for nodes in timestamp, its predecessor and all directly connected ancestor timestamps.
