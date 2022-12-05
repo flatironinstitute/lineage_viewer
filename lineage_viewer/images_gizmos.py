@@ -4,10 +4,12 @@ Displays for labels and images
 """
 
 import numpy as np
-from H5Gizmos import Stack, Slider, Image, Shelf, Button, Text, RangeSlider, do
+from H5Gizmos import Stack, Slider, Image, Shelf, Button, Text, Input, RangeSlider, do
 from array_gizmos import colorizers, operations3d
 from scipy.ndimage import gaussian_filter
 from . import lineage_gizmo
+from . import lineage_forest
+import json
 
 ENHANCE_CONTRAST = True
 dummy_image = np.zeros((2,2), dtype=np.int)
@@ -21,10 +23,15 @@ class LineageViewer:
         self.compare = CompareTimeStamps(forest, side, title)
         self.lineage = lineage_gizmo.LineageDisplay(2.5 * side, 2 * side, colorize=colorize)
         self.detail = lineage_gizmo.TimeSliceDetail(height=side * 0.3, width=5*side)
-        self.info_area = Text("Data not yet loaded.")
+        self.info_area = Text("No timestamp selected.")
         self.reparent_button = Button("reparent")
         self.disconnect_button = Button("disconnect")
         misc_controls = [self.reparent_button, self.disconnect_button]
+        self.filename_input = Input("lineage.json", size=80)
+        self.save_button = Button("Save", on_click=self.save_click)
+        self.load_button = Button("Load", on_click=self.load_click)
+        file_controls = [["File name:", self.filename_input], [self.load_button, self.save_button]]
+        misc_controls += file_controls
         self.gizmo = Stack([ 
             [self.compare.gizmo, self.lineage.gizmo],
             self.detail.gizmo,
@@ -46,6 +53,36 @@ class LineageViewer:
         self.disconnect_button.set_on_click(self.disconnect_click)
         self.reparent_button.set_enabled(False)
         self.disconnect_button.set_enabled(False)
+
+    def load_click(self, *ignored):
+        self.info("load clicked.")
+        filename = self.filename_input.value
+        try:
+            infile = open(filename)
+        except Exception as e:
+            self.info("could not open %s: %s" % (repr(filename), e))
+            raise
+        else:
+            json_ob = json.load(infile)
+            infile.close()
+            new_forest = lineage_forest.Forest()
+            new_forest.load_json(json_ob)
+            self.recalculate_forest(new_forest)
+            self.info("lineage loaded from " + repr(filename))
+
+    def save_click(self, *ignored):
+        self.info("save clicked.")
+        filename = self.filename_input.value
+        try:
+            outfile = open(filename, 'w')
+        except Exception as e:
+            self.info("could not open %s: %s" % (repr(filename), e))
+            raise
+        else:
+            json_ob = self.forest.json_ob(exclude_isolated=False)
+            json.dump(json_ob, outfile)
+            outfile.close()
+            self.info("lineage stored to " + repr(filename))
 
     def reparent_click(self, *ignored):
         self.info("reparent clicked.")
@@ -71,7 +108,7 @@ class LineageViewer:
             child_node.parent = None
             self.recalculate_forest()
 
-    def recalculate_forest(self):
+    def recalculate_forest(self, new_forest=None):
         compare = self.compare
         child_display = compare.child_display
         parent_display = compare.parent_display
@@ -79,7 +116,10 @@ class LineageViewer:
         #parent_ts = parent_display.timestamp
         child_label = child_display.focus_label
         parent_label = parent_display.focus_label
-        forest = self.forest.clean_clone()
+        if new_forest is None:
+            forest = self.forest.clean_clone()
+        else:
+            forest = new_forest
         #forest.reset()
         forest.find_tracks_and_lineages()
         forest.assign_offsets()
