@@ -280,6 +280,11 @@ class Forest:
         result.image_volume_loader = self.image_volume_loader
         return result
 
+    def use_same_loaders(self, result):
+        result.label_volume_loader = self.label_volume_loader
+        result.image_volume_loader = self.image_volume_loader
+        return result
+
     def reset(self):
         for node in self.id_to_node.values():
             node.reset()

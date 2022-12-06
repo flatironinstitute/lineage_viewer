@@ -66,6 +66,7 @@ class LineageViewer:
             json_ob = json.load(infile)
             infile.close()
             new_forest = lineage_forest.Forest()
+            self.forest.use_same_loaders(new_forest)
             new_forest.load_json(json_ob)
             self.recalculate_forest(new_forest)
             self.info("lineage loaded from " + repr(filename))
