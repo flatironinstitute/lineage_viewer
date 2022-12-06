@@ -213,6 +213,9 @@ class CompareTimeStamps:
         self.theta = 0
         self.phi = 0
         self.gamma = 0
+        self.theta2 = 0
+        self.phi2 = 0
+        self.gamma2 = 0
         self.label_select_callback = None
 
     def get_sliders(self, side):
@@ -225,7 +228,7 @@ class CompareTimeStamps:
             maximum=+limit, 
             step=0.02, 
             on_change=self.project_and_display)
-        self.theta_slider.resize(height=side)
+        self.theta_slider.resize(height=side/2)
         self.phi_slider = Slider(
             title="theta", 
             orientation="vertical",
@@ -234,7 +237,7 @@ class CompareTimeStamps:
             maximum=+limit, 
             step=0.02, 
             on_change=self.project_and_display)
-        self.phi_slider.resize(height=side)
+        self.phi_slider.resize(height=side/2)
         self.gamma_slider = Slider(
             title="gamma", 
             orientation="vertical",
@@ -243,7 +246,34 @@ class CompareTimeStamps:
             maximum=+limit, 
             step=0.02, 
             on_change=self.project_and_display)
-        self.gamma_slider.resize(height=side)
+        self.gamma_slider.resize(height=side/2)
+        self.theta2_slider = Slider(
+            title="theta2", 
+            orientation="vertical",
+            value=0, 
+            minimum=-limit, 
+            maximum=+limit, 
+            step=0.02, 
+            on_change=self.project_and_display)
+        self.theta2_slider.resize(height=side/2)
+        self.phi2_slider = Slider(
+            title="phi2", 
+            orientation="vertical",
+            value=0, 
+            minimum=-limit, 
+            maximum=+limit, 
+            step=0.02, 
+            on_change=self.project_and_display)
+        self.phi2_slider.resize(height=side/2)
+        self.gamma2_slider = Slider(
+            title="gamma2", 
+            orientation="vertical",
+            value=0, 
+            minimum=-limit, 
+            maximum=+limit, 
+            step=0.02, 
+            on_change=self.project_and_display)
+        self.gamma2_slider.resize(height=side/2)
         # dummy values for now
         I = 100
         self.I_slider = RangeSlider(
@@ -284,6 +314,11 @@ class CompareTimeStamps:
                 ["ϕ", self.phi_slider],
                 ["θ", self.theta_slider],
                 ["γ", self.gamma_slider],
+            ],
+            [
+                ["ϕ'", self.phi2_slider],
+                ["θ'", self.theta2_slider],
+                ["γ'", self.gamma2_slider],
             ],
             [ 
                 ["I", self.I_slider],
@@ -340,6 +375,9 @@ class CompareTimeStamps:
         self.theta = self.theta_slider.value
         self.phi = self.phi_slider.value
         self.gamma = self.gamma_slider.value
+        self.theta2 = self.theta2_slider.value
+        self.phi2 = self.phi2_slider.value
+        self.gamma2 = self.gamma2_slider.value
         s = [
             self.I_slider.values,
             self.J_slider.values,
@@ -350,8 +388,8 @@ class CompareTimeStamps:
         self.display_images()
 
     def project2d(self):
-        self.parent_display.project2d(self)
-        self.child_display.project2d(self)
+        self.parent_display.project2d(self, parent=True)
+        self.child_display.project2d(self, parent=False)
 
     def display_images(self):
         self.parent_display.create_mask()
@@ -367,13 +405,28 @@ class CompareTimeStamps:
         self.parent_display.reset()
         self.child_display.reset()
 
-    def rotate_image(self, img):
+    def rotate_image(self, img, parent=False):
         sl = self.slicing
         simg = img
         if sl is not None:
             simg = operations3d.slice3(img, sl)
         buffer = operations3d.rotation_buffer(simg)
-        rbuffer = operations3d.rotate3d(buffer, self.theta, self.phi, self.gamma)
+        def adjust_range(theta):
+            if theta > np.pi:
+                return theta - 2 * np.pi
+            elif theta < -np.pi:
+                return theta + 2 * np.pi
+            else:
+                return theta
+        if parent:
+            theta = adjust_range(self.theta)
+            phi = adjust_range(self.phi)
+            gamma = adjust_range(self.gamma)
+        else:
+            theta = adjust_range(self.theta + self.theta2)
+            phi = adjust_range(self.phi + self.phi2)
+            gamma = adjust_range(self.gamma + self.gamma2)
+        rbuffer = operations3d.rotate3d(buffer, theta, phi, gamma)
         return rbuffer
 
 class CachedVolumeData:
@@ -494,14 +547,14 @@ class ImageAndLabels2d:
             self.image_volume = im
         self.volume_shape = self.label_volume.shape
 
-    def project2d(self, comparison):
+    def project2d(self, comparison, parent=False):
         self.valid_projection = False # defaul
         image2d = labels2d = None
         if self.label_volume is not None:
-            rlabels = comparison.rotate_image(self.label_volume)
+            rlabels = comparison.rotate_image(self.label_volume, parent=parent)
             labels2d = operations3d.extrude0(rlabels)
         if self.image_volume is not None:
-            rimage = comparison.rotate_image(self.image_volume)
+            rimage = comparison.rotate_image(self.image_volume, parent=parent)
             image2d = rimage.max(axis=0)  # maximum value projection.
             if ENHANCE_CONTRAST:
                 image2d = colorizers.enhance_contrast(image2d, cutoff=0.05)
