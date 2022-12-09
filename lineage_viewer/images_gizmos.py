@@ -5,11 +5,13 @@ Displays for labels and images
 
 import numpy as np
 from H5Gizmos import Stack, Slider, Image, Shelf, Button, Text, Input, RangeSlider, do
+from H5Gizmos.python.file_selector import select_any_file
 from array_gizmos import colorizers, operations3d
 from scipy.ndimage import gaussian_filter
 from . import lineage_gizmo
 from . import lineage_forest
 import json
+import os
 
 ENHANCE_CONTRAST = True
 dummy_image = np.zeros((2,2), dtype=np.int)
@@ -30,7 +32,9 @@ class LineageViewer:
         self.filename_input = Input("lineage.json", size=80)
         self.save_button = Button("Save", on_click=self.save_click)
         self.load_button = Button("Load", on_click=self.load_click)
-        file_controls = [["File name:", self.filename_input], [self.load_button, self.save_button]]
+        self.browse_button = Button("Browse", on_click=self.browse_click)
+        #file_controls = [["File name:", self.filename_input], [self.load_button, self.save_button]]
+        file_controls = [["File name:", self.filename_input], self.load_button, self.save_button, self.browse_button]
         misc_controls += file_controls
         self.gizmo = Stack([ 
             [self.compare.gizmo, self.lineage.gizmo],
@@ -38,6 +42,8 @@ class LineageViewer:
             misc_controls,
             self.info_area,
         ])
+        start = os.path.abspath(".")
+        self.file_selector = select_any_file(on_select=self.select_file, root_folder="/", start_location=start, input_width=200)
 
     def info(self, text):
         self.info_area.text(text)
@@ -53,6 +59,15 @@ class LineageViewer:
         self.disconnect_button.set_on_click(self.disconnect_click)
         self.reparent_button.set_enabled(False)
         self.disconnect_button.set_enabled(False)
+        self.file_selector.add_as_dialog_to(self.gizmo)
+
+    def browse_click(self, *ignored):
+        self.file_selector.gizmo.open_dialog()
+
+    def select_file(self, filename):
+        self.filename_input.set_value(filename)
+        self.file_selector.gizmo.close_dialog()
+        self.info("Use buttons to load or save " + repr(filename))
 
     def load_click(self, *ignored):
         self.info("load clicked.")
@@ -127,8 +142,9 @@ class LineageViewer:
         self.forest = forest
         self.lineage.load_forest(forest)
         self.compare.forest = forest
-        self.ts_select_callback(child_ts.ordinal)
-        self.lineage.focus_ts(child_ts.ordinal)
+        if child_ts is not None:
+            self.ts_select_callback(child_ts.ordinal)
+            self.lineage.focus_ts(child_ts.ordinal)
         child_display.focus_label = child_label
         parent_display.focus_label = parent_label
         child_display._focus_node = parent_display._focus_node = None
@@ -171,7 +187,8 @@ class LineageViewer:
         compare.child_display.focus_on_node(child_node)
         compare.parent_display.focus_on_node(parent_node)
         compare.display_images()
-        self.detail.update_selections(cid, pid)
+        if cid is not None and pid is not None:
+            self.detail.update_selections(cid, pid)
         # set buttons enabled or not
         child_current_parent_id = None
         if child_node is not None and child_node.parent is not None:
@@ -652,6 +669,9 @@ class ImageAndLabels2d:
     def display_images(self):
         #label = self.focus_label
         labels = self.labels
+        if labels is None:
+            self.info("No volume labels to display")
+            return
         maxlabel = labels.max()
         color_mapping_array = None
         if self.timestamp is not None:
