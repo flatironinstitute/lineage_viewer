@@ -67,7 +67,7 @@ else:
     #image_pattern = "klbOut_Cam_Long_%(ordinal)05d.crop.klb"
     image_pattern = prefix + "registered_images/nuclei_reg8_%(ordinal)d.tif"
     #label_pattern = "klbOut_Cam_Long_%(ordinal)05d.crop_cp_masks.klb"
-    label_pattern = "registered_label_images/label_reg8_%(ordinal)d.tif"
+    label_pattern = prefix + "registered_label_images/label_reg8_%(ordinal)d.tif"
 
     def img_loader(ordinal, pattern=image_pattern):
         #import pyklb
