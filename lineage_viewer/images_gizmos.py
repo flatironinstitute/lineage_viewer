@@ -14,6 +14,7 @@ import json
 import os
 
 ENHANCE_CONTRAST = True
+HACK_SHAPES = True
 dummy_image = np.zeros((2,2), dtype=np.int)
 
 class LineageViewer:
@@ -549,7 +550,15 @@ class ImageAndLabels2d:
     def load_volumes(self, label_volume, image_volume):
         l_s = label_volume.shape
         i_s = image_volume.shape
-        assert l_s == i_s, "volume shapes don't match: " + repr([l_s, i_s])
+        if not HACK_SHAPES:
+            assert l_s == i_s, "volume shapes don't match: " + repr([l_s, i_s])
+        else:
+            if l_s != i_s:
+                min_s = tuple(np.minimum(l_s, i_s))
+                print ("hacking image and label shapes: ", l_s, i_s, min_s)
+                (I, J, K) = min_s
+                label_volume = label_volume[:I, :J, :K]
+                image_volume = image_volume[:I, :J, :K]
         # need to fix this so slicing is unified across timestamps! xxxxx
         slicing = operations3d.positive_slicing(label_volume)
         self.label_volume = operations3d.slice3(label_volume, slicing)
