@@ -74,6 +74,7 @@ else:
         #subs = {"ordinal": ordinal}
         subs = {"ordinal": ordinal}  # files are zero based?
         path = pattern % subs
+        print("attempting to load path", repr(path))
         if os.path.exists(path):
             return  tools.load_tiff_array(path)
         else:
