@@ -19,6 +19,8 @@ HACK_SHAPES = True
 dummy_image = np.zeros((2,2), dtype=np.int)
 YES_ENHANCED = "✓ enhanced"
 NOT_ENHANCED = "✖ not enhanced"
+YES_BLUR = "✓ blurred"
+NO_BLUR = "✖ no blur"
 
 class LineageViewer:
 
@@ -216,16 +218,18 @@ class CompareTimeStamps:
         self.title_area = Text(self.title)
         self.title_area.resize(width=side * 2)
         self.info_area = Text("Building scaffolding.")
-        self.info_area.resize(width=side * 2)
+        #self.info_area.resize(width=side * 2)
         self.parent_display = ImageAndLabels2d(side, None, title="Parent images")
         self.child_display = ImageAndLabels2d(side, None, title="Child images")
         self.enhanced_link = ClickableText(NOT_ENHANCED, on_click=self.toggle_enhanced)
+        self.blur_link = ClickableText(NO_BLUR, on_click=self.toggle_blur)
         self.enhanced_images = False
+        self.blur_images = False
         self.displays = Stack([ 
             self.title_area,
             self.parent_display.gizmo,
             self.child_display.gizmo,
-            [self.enhanced_link, self.info_area],
+            [self.enhanced_link, self.blur_link, self.info_area],
         ])
         sliders = self.get_sliders(side)
         self.gizmo = Shelf([ 
@@ -364,9 +368,23 @@ class CompareTimeStamps:
             self.enhanced_link.text(YES_ENHANCED)
         else:
             self.enhanced_link.text(NOT_ENHANCED)
+        self.reload_volumes_and_images()
+
+    def toggle_blur(self, *ignored):
+        e = self.blur_images = not self.blur_images
+        self.child_display.blur = e
+        self.parent_display.blur = e
+        if e:
+            self.blur_link.text(YES_BLUR)
+        else:
+            self.blur_link.text(NO_BLUR)
+        self.reload_volumes_and_images()
+
+    def reload_volumes_and_images(self):
+        self.child_display.reload_cached_volumes()
+        self.parent_display.reload_cached_volumes()
         self.project2d()
         self.display_images()
-
 
     def reset_slider_maxes(self):
         Mc = self.child_display.shape()
@@ -499,7 +517,7 @@ class ImageAndLabels2d:
         self.label_volume = None
         self.on_label_select_callback = None
         self.cached_volume_data = None
-        self.blur = True
+        self.blur = False
         self.enhance = False
         self.reset(timestamp)
 
@@ -547,6 +565,11 @@ class ImageAndLabels2d:
                     else:
                         self.info("Loaded timestamp " + repr(ordinal))
                         self.load_volumes(label_volume, image_volume)
+
+    def reload_cached_volumes(self):
+        cached = self.cached_volume_data
+        if cached:
+            self.load_volumes(cached.label_volume, cached.image_volume)
 
     def focus_node(self):
         if self._focus_node is not None:
@@ -598,6 +621,7 @@ class ImageAndLabels2d:
         image2d = labels2d = None
         if self.label_volume is not None:
             rlabels = comparison.rotate_image(self.label_volume, parent=parent)
+            self.rotated_labels = rlabels
             labels2d = operations3d.extrude0(rlabels)
         if self.image_volume is not None:
             rimage = comparison.rotate_image(self.image_volume, parent=parent)
@@ -670,7 +694,11 @@ class ImageAndLabels2d:
         if node is not None:
             assert node.color_array is not None, "color not assigned to node: " + repr(node)
             self.focus_color = node.color_array
-        self.focus_mask = colorizers.boundary_image(labels, label)
+        #self.focus_mask = colorizers.boundary_image(labels, label)
+        rlabels = self.rotated_labels
+        target = (rlabels == label).astype(np.ubyte)
+        projected = operations3d.extrude0(target)
+        self.focus_mask = colorizers.boundary_image(projected, 1)
 
     def clear_images(self):
         self.load_images(None, None)
