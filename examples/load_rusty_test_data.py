@@ -75,7 +75,7 @@ else:
     lab = F.load_labels_for_timestamp(test_ordinal)
     assert lab is not None, "Could not load image for: " + repr(test_ordinal)
 
-viewer = images_gizmos.LineageViewer(F, 350, "220827_stack1")
+viewer = images_gizmos.LineageViewer(F, 600, "220827_stack1")
 
 async def task():
     print (__doc__)

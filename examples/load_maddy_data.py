@@ -92,7 +92,7 @@ else:
     assert lab is not None, "Could not load image for: " + repr(test_ordinal)
 
 
-viewer = images_gizmos.LineageViewer(F, 400, title="maddy data")
+viewer = images_gizmos.LineageViewer(F, 600, title="maddy data")
 
 async def task():
     print (__doc__)

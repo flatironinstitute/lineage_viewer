@@ -31,9 +31,10 @@ while 1:
 
 #print(assignment)
 
+# load nodes with no parents...
 fn = "Combined.json"
 json_ob = json.load(open(fn))
-F = lineage_forest.make_forest_from_haydens_json_graph(json_ob, label_assignment=assignment)
+F = lineage_forest.make_forest_from_haydens_json_graph(json_ob, label_assignment=assignment, add_parents=False)
 
 trivialize = False
 
@@ -48,7 +49,7 @@ else:
             label_pattern=label_pattern,
         )
 
-viewer = images_gizmos.LineageViewer(F, 600, title="Images provided for timestamps 7 to 30")
+viewer = images_gizmos.LineageViewer(F, 400, title="Images provided for timestamps 7 to 30")
 
 async def task():
     print (__doc__)
