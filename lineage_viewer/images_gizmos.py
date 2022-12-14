@@ -21,6 +21,8 @@ YES_ENHANCED = "✓ enhanced"
 NOT_ENHANCED = "✖ not enhanced"
 YES_BLUR = "✓ blurred"
 NO_BLUR = "✖ no blur"
+YES_MASK = "✓ masked"
+NO_MASK = "✖ no mask"
 
 class LineageViewer:
 
@@ -223,13 +225,15 @@ class CompareTimeStamps:
         self.child_display = ImageAndLabels2d(side, None, title="Child images")
         self.enhanced_link = ClickableText(NOT_ENHANCED, on_click=self.toggle_enhanced)
         self.blur_link = ClickableText(NO_BLUR, on_click=self.toggle_blur)
+        self.mask_link = ClickableText(NO_MASK, on_click=self.toggle_mask)
         self.enhanced_images = False
         self.blur_images = False
+        self.mask_images = False
         self.displays = Stack([ 
             self.title_area,
             self.parent_display.gizmo,
             self.child_display.gizmo,
-            [self.enhanced_link, self.blur_link, self.info_area],
+            [self.enhanced_link, self.blur_link, self.mask_link, self.info_area],
         ])
         sliders = self.get_sliders(side)
         self.gizmo = Shelf([ 
@@ -380,6 +384,16 @@ class CompareTimeStamps:
             self.blur_link.text(NO_BLUR)
         self.reload_volumes_and_images()
 
+    def toggle_mask(self, *ignored):
+        e = self.mask_images = not self.mask_images
+        self.child_display.mask = e
+        self.parent_display.mask = e
+        if e:
+            self.mask_link.text(YES_MASK)
+        else:
+            self.mask_link.text(NO_MASK)
+        self.reload_volumes_and_images()
+
     def reload_volumes_and_images(self):
         self.child_display.reload_cached_volumes()
         self.parent_display.reload_cached_volumes()
@@ -519,6 +533,7 @@ class ImageAndLabels2d:
         self.cached_volume_data = None
         self.blur = False
         self.enhance = False
+        self.mask = False
         self.reset(timestamp)
 
     def on_label_select(self, callback):
@@ -606,6 +621,9 @@ class ImageAndLabels2d:
         self.label_volume = operations3d.slice3(label_volume, slicing)
         self.image_volume = operations3d.slice3(image_volume, slicing)
         self.cached_volume_data = CachedVolumeData(self.timestamp.ordinal, label_volume, image_volume)
+        # masking NOT HERE
+        #if self.mask:
+        #    self.image_volume = np.where((self.label_volume != 0), self.image_volume, 0)
         # image enhancement
         if self.blur:
             im = self.unenhanced_image_volume = self.image_volume
@@ -710,6 +728,8 @@ class ImageAndLabels2d:
             self.valid_projection = False
         else:
             img = colorizers.scale256(img)  # ???? xxxx
+            if (labels is not None) and self.mask:
+                img = np.where((labels != 0), img, 0)
             img = colorizers.to_rgb(img, scaled=False)
             self.img = img
             self.valid_projection = True
