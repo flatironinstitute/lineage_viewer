@@ -24,8 +24,8 @@ class LineageViewer:
         self.side = side
         self.title = title
         self.compare = CompareTimeStamps(forest, side, title)
-        self.lineage = lineage_gizmo.LineageDisplay(2.5 * side, 2 * side, colorize=colorize)
-        self.detail = lineage_gizmo.TimeSliceDetail(height=side * 0.3, width=4.5*side)
+        self.lineage = lineage_gizmo.LineageDisplay(2.2 * side, side, colorize=colorize)
+        self.detail = lineage_gizmo.TimeSliceDetail(height=side * 0.3, width=3.1*side)
         self.info_area = Text("No timestamp selected.")
         self.reparent_button = Button("reparent")
         self.disconnect_button = Button("disconnect")
