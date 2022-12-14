@@ -4,7 +4,8 @@ Displays for labels and images
 """
 
 import numpy as np
-from H5Gizmos import Stack, Slider, Image, Shelf, Button, Text, Input, RangeSlider, do
+from H5Gizmos import (
+    Stack, Slider, Image, Shelf, Button, Text, Input, RangeSlider, do, ClickableText)
 from H5Gizmos.python.file_selector import select_any_file
 from array_gizmos import colorizers, operations3d
 from scipy.ndimage import gaussian_filter
@@ -16,6 +17,8 @@ import os
 ENHANCE_CONTRAST = True
 HACK_SHAPES = True
 dummy_image = np.zeros((2,2), dtype=np.int)
+YES_ENHANCED = "✓ enhanced"
+NOT_ENHANCED = "✖ not enhanced"
 
 class LineageViewer:
 
@@ -216,11 +219,13 @@ class CompareTimeStamps:
         self.info_area.resize(width=side * 2)
         self.parent_display = ImageAndLabels2d(side, None, title="Parent images")
         self.child_display = ImageAndLabels2d(side, None, title="Child images")
+        self.enhanced_link = ClickableText(NOT_ENHANCED, on_click=self.toggle_enhanced)
+        self.enhanced_images = False
         self.displays = Stack([ 
             self.title_area,
             self.parent_display.gizmo,
             self.child_display.gizmo,
-            self.info_area,
+            [self.enhanced_link, self.info_area],
         ])
         sliders = self.get_sliders(side)
         self.gizmo = Shelf([ 
@@ -350,6 +355,18 @@ class CompareTimeStamps:
         self.on_label_select_callback = callback
         self.child_display.on_label_select(callback)
         self.parent_display.on_label_select(callback)
+
+    def toggle_enhanced(self, *ignored):
+        e = self.enhanced_images = not self.enhanced_images
+        self.child_display.enhance = e
+        self.parent_display.enhance = e
+        if e:
+            self.enhanced_link.text(YES_ENHANCED)
+        else:
+            self.enhanced_link.text(NOT_ENHANCED)
+        self.project2d()
+        self.display_images()
+
 
     def reset_slider_maxes(self):
         Mc = self.child_display.shape()
@@ -482,6 +499,8 @@ class ImageAndLabels2d:
         self.label_volume = None
         self.on_label_select_callback = None
         self.cached_volume_data = None
+        self.blur = True
+        self.enhance = False
         self.reset(timestamp)
 
     def on_label_select(self, callback):
@@ -565,7 +584,7 @@ class ImageAndLabels2d:
         self.image_volume = operations3d.slice3(image_volume, slicing)
         self.cached_volume_data = CachedVolumeData(self.timestamp.ordinal, label_volume, image_volume)
         # image enhancement
-        if ENHANCE_CONTRAST:
+        if self.blur:
             im = self.unenhanced_image_volume = self.image_volume
             im = im.astype(np.float)
             im = gaussian_filter(im, sigma=1)
@@ -583,7 +602,7 @@ class ImageAndLabels2d:
         if self.image_volume is not None:
             rimage = comparison.rotate_image(self.image_volume, parent=parent)
             image2d = rimage.max(axis=0)  # maximum value projection.
-            if ENHANCE_CONTRAST:
+            if self.enhance:
                 image2d = colorizers.enhance_contrast(image2d, cutoff=0.05)
             self.valid_projection = True
         self.load_images(image2d, labels2d)
