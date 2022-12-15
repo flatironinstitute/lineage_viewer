@@ -6,7 +6,11 @@ Graphical interface for editing a lineage and viewing related microscopy images.
 
 # Installation
 
-The install procedure is not fully automated.
+This package requires Python 3.7 or higher.  If you need to install an appropriate Python
+I recommend using conda installed in single user mode (for easy maintenance) 
+<a href="http://bit.ly/tryconda">http://bit.ly/tryconda</a>.
+
+The package install procedure is not fully automated.
 
 Please install the following dependencies manually in the following order.
 
@@ -33,7 +37,9 @@ lineage tree description but only includes image data
 for timestamps 1 and 2 of the tree.
 
 To try the example lineage go to the `lineage_viewer/examples/lineage_sample`
-directory and run the `load_sample_lineage.py` script.  For example on my laptop:
+directory and run the `load_sample_lineage.py` script.  
+
+For example on my laptop:
 
 ```bash
 (base) C02XD1KGJGH8:lineage_sample awatters$ cd ~/repos/lineage_viewer/
@@ -45,7 +51,9 @@ Open gizmo using link (control-click / open link)
  GIZMO_LINK: http://127.0.0.1:56998/gizmo/http/MGR_1671120997917_6/index.html 
 
 ```
-then open the provided link URL in a browser to start the interface.
+On my Mac laptop I have to confirm that Python can accept incoming connections in a pop up dialogue.
+
+Then open the provided link URL in a browser to start the interface.
 When the interface loads click on timestamp 2 near the top of the lineage tree
 summary to load the images for timestamps 1 and 2 (as discussed in more detail below).
 
@@ -66,7 +74,7 @@ Open gizmo using link (control-click / open link)
 ```
 
 The user may open the generated link `http://10.128.146.57:59663/gizmo/http/MGR_1671116590930_6/index.html`
-on by control-clicking the link (on a Mac OS for example).
+by control-clicking the link (on a Mac OS for example).
 
 The interface starts with no timestamp selected.  With no timestamp selected only the lineage tree summary
 in the right panel displays.
@@ -74,5 +82,31 @@ in the right panel displays.
 Select a current time stamp by clicking on the lineage
 tree summary on the right.  When a time stamp is selected the interface looks like the annotated
 image below.
+
+## Overview and motivation
+
+## The Lineage tree summary
+
+## The current and previous timestamp
+
+## The lineage timestamp detail
+
+## The microscopy volumes
+
+## The image filter toggles
+
+## The segmentation structure volumes
+
+## The selected structures
+
+## The selected strucure volume projections
+
+## The rotation sliders
+
+## The slicing sliders
+
+## The edit controls
+
+## The storage controls
 
 <img src="annotated.png"/>
