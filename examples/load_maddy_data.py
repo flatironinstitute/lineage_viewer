@@ -29,30 +29,6 @@ import json
 from mouse_embryo_labeller import tools
 import os
 
-# get the label assignment
-"""
-ass_file = open("nuc_to_cells.csv")
-assignment = {}
-duplicate_check = {}
-ignore_headers = ass_file.readline()
-while 1:
-    line = ass_file.readline()
-    if not line:
-        break
-    [stack, identity, label_string] = line.strip().split(",")
-    #print (repr(label_string))
-    if label_string:
-        [tsid, old_label] = identity.split("_")
-        label = int(float(label_string))
-        check_key = (tsid, label)
-        check = duplicate_check.get(check_key)
-        if check != line:
-            assert check is None, "duplicate label: " + repr((check, line))
-        duplicate_check[check_key] = line
-        assignment[identity] = label"""
-
-#print(assignment)
-
 prefix = "/mnt/ceph/users/lbrown/MouseData/Maddy/220827_stack6/"
 
 fn = prefix + "LineageGraph.json"
@@ -108,4 +84,4 @@ async def debug_task():
     await st.link()
     viewer.configure_gizmo()
 
-serve(debug_task())
+serve(task())
