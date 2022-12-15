@@ -22,3 +22,4 @@ Then clone this repository and in the top level folder of the repository install
 ```bash
  pip install -e .
 ```
+<img src="annotated.png"/>
