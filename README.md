@@ -98,34 +98,88 @@ image below.
 
 ## Overview and motivation
 
-This interactive interface displays the following data sources
+This interactive interface presents the following components
 
 - A time sequence of microscopy image stacks (volumes) of an embryo. 
 - A derived timesequence of labelled volumes identifying cell structures of the embryo.
 The structures can be cell nuclei, cell membrane volumes, or other structures of interest.
+The "shape" of the cell volumes should match the "shape" of the microscopy volumes.
 - A derived cell lineage tree which identifies the parent/child relationship for the cells
 over the time sequence.
+- The interface highlights a selected timestamp and the previous timestamp.
+- The user can focus on a "selected structure" in the current and previous timestamp.
+- The user can slice and rotate the images.
 
 The interface is intended to allow the researcher to explore the data sets and possibly
 modify the lineage tree.
 
+The following sections discuss the components of the interface in detail:
+
 ## The Lineage tree summary
+
+The lineage tree summary on the right side of the interface displays the lineage of
+parent/child relationships among cells for the timestamps, with earlier time stamps at the
+top.  Cells with no parent or child relationship are not displayed.  The user may focus
+on one of the timestamps and its immediate previous timestamp by clicking the canvas.
+The user can move the focus up or down using the arrow keys when the mouse if hovered over
+the canvas.
 
 ## The current and previous timestamp
 
+The interface highlights a current and previous timestamp indicated by a rectangle
+on the lineage tree.  Initially there is no current timestamp and only the lineage tree
+summary displays.
+
 ## The lineage timestamp detail
+
+When the current time stamp is selected the relationship between the cells of the
+current timestamp and the previous timestamp is displayed in the lineage detail at
+the bottom of the interface.  All cells of both timestamps will display in the detail
+view even if they don't have parent/child relationships.
+
+The user can identify a "selected" cell for the current and previous timestamps by clicking
+the rectangles that correspond to that cell.  The selections will be highlighted by outer rectangles.
 
 ## The microscopy volumes
 
+The images on the left side display maximal value projections of the
+source microscopy images.  The volume for the current timestamp appears
+at the bottom and the volume for the previous timestamp appears at the top.
+
+Outlines of selected cell structures are projected
+in the images even if they are obscured behind other structures.
+
 ## The image filter toggles
+
+Filter toggles below the microscopy images control whether the microscopy images are filtered.
+Click the controls to turn them on and off.
+
+- The "mask" toggle enables masking of the images so that regions that are not labelled
+show as black background.
+- The "blur" toggle controls whether background noise is "averaged out" and the
+dynamic range of values is stretched.
+- The "enhance" control increases the image contrast.
 
 ## The segmentation structure volumes
 
-## The selected structures
+The colored images to the right of the microscopy images show segmentation volumes
+extruded to 2 dimensions.  The volume for the current timestamp appears
+at the bottom and the volume for the previous timestamp appears at the top.
+The labelled volumes are colored to match the corresponding entry in the lineage tree.
+Any labelled volumes that do not correspond to a node of the
+lineage tree show as gray.
 
-## The selected strucure volume projections
+Outlines of selected cell structures are projected
+in the image in white even if they are obscured behind other structures.
+The user can select a structure by clicking the corresponding colored region.
 
 ## The rotation sliders
+
+The microscopy and labelled volumes can be rotated using the rotation sliders to
+the right of the image area.
+
+- Sliders "ϕ", "θ", "γ" apply rotations to all image volumes.
+- Sliders "ϕ'", "θ'", "γ'" apply rotations to only the current timestamp volumes.
 
 ## The slicing sliders
 
