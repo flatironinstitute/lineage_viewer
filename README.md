@@ -1,6 +1,17 @@
 # lineage_viewer
 Graphical interface for editing a lineage and viewing related microscopy images.
 
+This package implements a graphical interface designed for use in
+early embryology.  The visualization allows the user to explore the
+relationship between time sequences of microscopy image volumes of an embryo, segmentation
+volumes for the embryo identifying cell structures, and cell lineage trees for the
+cells of the embryo.
+
+The interface includes the ability to modify, store, and load the lineage tree.
+
+The interface was specifically designed for use in studies of early mouse
+embryology using light sheet microscopy extracted from a live embryo over many days.
+
 <img src="viewer.png"/>
 
 
@@ -83,7 +94,20 @@ Select a current time stamp by clicking on the lineage
 tree summary on the right.  When a time stamp is selected the interface looks like the annotated
 image below.
 
+<img src="annotated.png"/>
+
 ## Overview and motivation
+
+This interactive interface displays the following data sources
+
+- A time sequence of microscopy image stacks (volumes) of an embryo. 
+- A derived timesequence of labelled volumes identifying cell structures of the embryo.
+The structures can be cell nuclei, cell membrane volumes, or other structures of interest.
+- A derived cell lineage tree which identifies the parent/child relationship for the cells
+over the time sequence.
+
+The interface is intended to allow the researcher to explore the data sets and possibly
+modify the lineage tree.
 
 ## The Lineage tree summary
 
@@ -109,4 +133,6 @@ image below.
 
 ## The storage controls
 
-<img src="annotated.png"/>
+# Loading the viewer
+
+
