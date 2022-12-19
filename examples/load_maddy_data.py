@@ -31,6 +31,7 @@ import os
 
 prefix = "/mnt/ceph/users/lbrown/MouseData/Maddy/220827_stack6/"
 
+# Load a lineage forest from a JSON representation dumped from MatLab
 fn = prefix + "LineageGraph.json"
 json_ob = json.load(open(fn))
 F = lineage_forest.make_forest_from_haydens_json_graph(json_ob)

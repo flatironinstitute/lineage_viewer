@@ -183,10 +183,151 @@ the right of the image area.
 
 ## The slicing sliders
 
-## The edit controls
+Slicing range sliders appear to the right of the images below the rotation sliders.
+These sliders apply slicing in the I, J, and K dimensions to the image volumes
+so the user can view structures in interior regions of the volume with outer structures
+sliced away.
+
+## The "reparent" and "disconnect" edit buttons
+
+The "reparent" and "disconnect" buttons at the bottom allow the user to modify the
+lineage tree structure by changing the parent relationship for the structure selected
+in the current timestamp.
+
+If there is a structure selected in both the current and previous time stamp then
+the "reparent" button will make the earlier structure the parent of the later structure
+in the lineage tree.
+
+If a selected structure in the current time stamp has a parent in the lineage then the
+"disconnect" button will remove its parent relationship and leave the structure with no parent.
 
 ## The storage controls
 
+The "Save" and "Load" buttons at the bottom save and load the lineage tree structure to/from the file path named
+in the adjacent "file name" input area.  The "Browse" button opens a dialog which allows the user
+to browse the file system for files or folders.
+
 # Loading the viewer
+
+In Python a `images_gizmos.LineageViewer` object is created using a 
+`lineage_forest.Forest` container 
+```Python
+forest = lineage_viewer.lineage_forest.Forest()
+```
+which encapsulates the lineage forest and
+methods for finding the image and label volumes for a timestamp number (called an ordinal below).
+
+## Defining the image loaders for a timestamp ordinal
+
+The following code fragment from the `examples/load_maddy_data.py` script
+illustrates two ways to define image loaders for a `LineageViewer`.
+At the top the `F.use_trivial_null_loaders()` method defines the loaders
+to always return `None` indicating that the images for the timestamp ordinal
+could not be found.
+
+```Python
+from mouse_embryo_labeller import tools
+trivialize = False
+
+if trivialize:
+    F.use_trivial_null_loaders()
+else:
+    prefix = "/mnt/ceph/users/lbrown/MouseData/Maddy/220827_stack6/"
+    image_pattern = prefix + "registered_images/nuclei_reg8_%(ordinal)d.tif"
+    label_pattern = prefix + "registered_label_images/label_reg8_%(ordinal)d.tif"
+
+    def img_loader(ordinal, pattern=image_pattern):
+        subs = {"ordinal": ordinal}  # files are zero based?
+        path = pattern % subs
+        print("attempting to load path", repr(path))
+        if os.path.exists(path):
+            return  tools.load_tiff_array(path)
+        else:
+            return None  # no data for this timeslice.
+    def label_loader(ordinal):
+        return img_loader(ordinal, label_pattern)
+
+    F.image_volume_loader = img_loader
+    F.label_volume_loader = label_loader
+
+    test_ordinal = 29
+    img = F.load_image_for_timestamp(test_ordinal)
+    assert img is not None, "Could not load image for: " + repr(test_ordinal)
+    lab = F.load_labels_for_timestamp(test_ordinal)
+    assert lab is not None, "Could not load image for: " + repr(test_ordinal)
+```
+
+The `img_loader` function above loads an image for a timestamp ordinal 
+from a TIFF file using a file pattern.
+
+### Loading KLB files
+
+The `forest` object also includes a convenience method for loading KLB format files.
+To use this method you must install the `pyklb` Python package (which can be a bit tricky).
+
+The following fragment from the `examples/load_rusty_test_data.py` script shows how to use the
+`forest.load_klb_using_file_patterns` method:
+
+```Python
+    label_pattern = "labels/klbOut_Cam_Long_%(ordinal)05d.crop_cp_masks.klb"
+    image_pattern = "images/klbOut_Cam_Long_%(ordinal)05d.crop.klb"
+    F.load_klb_using_file_patterns(
+            image_pattern=image_pattern,
+            label_pattern=label_pattern,
+        )
+```
+
+## Defining and populating a lineage forest
+
+The `forest` object
+maintains a collection of `Nodes` and the parent/child relationship between the nodes
+and provides other related computational methods.  This package includes convenience
+functions to automate constructing a forest and the forest object also includes
+methods for adding nodes and parent relationships in other scripts.
+
+### Populating a forest from JSON dumped from Matlab
+
+The `lineage_forest.make_forest_from_haydens_json_graph` convenience function
+populates a forest from a JSON data file structured similar to `examples/Combined.json`.
+Such files are derived from upstream Matlab based processes.
+
+The following code fragment from `examples.load_rusty_test_data` illustrates how
+to construct a forest from `Combined.json`:
+
+```Python
+label_assignment =  {}
+... construction of assignment omitted ...
+fn = "Combined.json"
+json_ob = json.load(open(fn))
+F = lineage_forest.make_forest_from_haydens_json_graph(json_ob, label_assignment=assignment)
+```
+
+The `label_assignment` mapping describes how to map node names to numeric labels.
+The assignment may be omitted (None) if the correct label can be derived from the node name.
+For example the label number derived from the node name `009_004` is 4.
+
+Please examine the source code for `lineage_forest.make_forest_from_haydens_json_graph` for
+additional options and details about this function.
+
+### Populating a forest by listing nodes and parent relationships in a script
+
+The `forest` object provides methods for adding nodes to a forest and defining the
+parentage relationship between nodes.  These methods can be used in Python scripts to
+construct lineage forests.
+
+The
+```Python
+node = forest.add_node(node_id, ordinal, label=None)
+```
+adds a node to a forest at a timestamp ordinal.  The `node_id` must be a unique string.
+the `label` number defines the label corresponding to this node in the label volume for
+the timestamp number `ordinal`.  If the node does not correspond to a label of the label volume
+it may be omitted.
+
+The `parent_node.set_child(child_node)` method of the `Node` object define a parent/child relationship
+in the forest.
+
+Please look to the source code of `lineage_forest.make_forest_from_haydens_json_graph` for example
+uses of these methods.
 
 
