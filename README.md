@@ -90,7 +90,7 @@ in the `examples` folder:
 ## A note about using the interface from `rusty`
 
 For better performance do not launch the interface on rusty from the login nodes.
-Instead allocate a node using `srun` to get a machine with better file system access:
+Instead allocate a node using `srun` to get a node with lower usage and better file system access:
 ```bash
 (base) C02XD1KGJGH8:lineage_viewer awatters$ ssh rusty
 No Slurm jobs found on node.
@@ -98,22 +98,7 @@ Last login: Tue Dec 13 09:03:14 2022 from 172.28.53.93
 [awatters@rusty1 ~]$ srun -N1 --pty bash -i
 (base) bash-4.4$ cd repos/lineage_viewer/examples/
 (base) bash-4.4$ python load_maddy_data.py 
-attempting to load path '/mnt/ceph/users/lbrown/MouseData/Maddy/220827_stack6/registered_images/nuclei_reg8_29.tif'
-attempting to load path '/mnt/ceph/users/lbrown/MouseData/Maddy/220827_stack6/registered_label_images/label_reg8_29.tif'
-
-This script launches a lineage editor/viewer using data configured like 
-awatters@rusty:/mnt/ceph/users/lbrown/MouseData/Maddy/220827_stack6
-
-I launch this on rusty in an srun allocated core:
-
-[awatters@rustyamd2 ~]$ srun -N1 --pty bash -i
-
-srun: job 2024926 queued and waiting for resources
-srun: job 2024926 has been allocated resources
-
-(base) bash-4.4$ cd ~/repos/lineage_viewer/examples/
-(base) bash-4.4$ python load_rusty_test_data.py 
-
+....
 Open gizmo using link (control-click / open link)
 
 <a href="http://10.250.145.112:34875/gizmo/http/MGR_1671465177684_6/index.html" target="_blank">Click to open</a> <br> 
