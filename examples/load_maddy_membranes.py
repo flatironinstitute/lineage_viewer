@@ -11,13 +11,7 @@ srun: job 2024926 queued and waiting for resources
 srun: job 2024926 has been allocated resources
 
 (base) bash-4.4$ cd ~/repos/lineage_viewer/examples/
-(base) bash-4.4$ python load_rusty_test_data.py 
-
-...
-Open gizmo using link (control-click / open link)
-
-<a href="http://10.128.145.31:41145/gizmo/http/MGR_1669912036163_6/index.html" target="_blank">Click to open</a> <br> 
- GIZMO_LINK: http://10.128.145.31:41145/gizmo/http/MGR_1669912036163_6/index.html 
+(base) bash-4.4$ python load_maddy_membranes.py 
 
 Then I open the link in a browser.
 """
