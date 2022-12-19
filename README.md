@@ -68,12 +68,64 @@ Then open the provided link URL in a browser to start the interface.
 When the interface loads click on timestamp 2 near the top of the lineage tree
 summary to load the images for timestamps 1 and 2 (as discussed in more detail below).
 
+# The `examples`
+
+The Github repository for this package includes a number of example scripts and data files
+in the `examples` folder:
+
+- `examples/lineage_sample` -- This folder includes a complete "stand alone" example data set.
+- `examples/lineage_sample/load_sample_lineage.py` -- The "launch script".
+- `examples/lineage_sample/LineageGraph.json` -- The JSON dump file defining the lineage forest.
+- `examples/lineage_sample/nuclei_reg8_2.tif` -- Microscopy volume for time stamp 2.
+- `examples/lineage_sample/nuclei_reg8_1.tif` -- Microscopy volume for time stamp 1.
+- `examples/lineage_sample/label_reg8_1.tif` -- Nucleus labelled volume for time stamp 1.
+- `examples/lineage_sample/label_reg8_2.tif` -- Nucleus labelled volume for time stamp 2.
+- `examples/lineage_sample/get files.ipynb` -- Historical notebook used to get the data files
+- `examples/Combined.json` -- The JSON dump file for `220827_stack1`
+- `examples/nuc_to_cells.csv` -- The membrane label correction CSV file for `220827_stack1` (from Masha).
+- `examples/load_rusty_test_data.py` -- An example script for loading data on the `rusty` cluster for `220827_stack1` using KLB.
+- `examples/load_maddy_data.py` -- An example script for loading data on the `rusty` cluster for `220827_stack6` using TIFF.
+- `examples/awatters_test_no_parents.py` -- An example script that loads nodes with no parentage relationships.
+
+## A note about using the interface from `rusty`
+
+For better performance do not launch the interface on rusty from the login nodes.
+Instead allocate a node using `srun` to get a machine with better file system access:
+```bash
+(base) C02XD1KGJGH8:lineage_viewer awatters$ ssh rusty
+No Slurm jobs found on node.
+Last login: Tue Dec 13 09:03:14 2022 from 172.28.53.93
+[awatters@rusty1 ~]$ srun -N1 --pty bash -i
+(base) bash-4.4$ cd repos/lineage_viewer/examples/
+(base) bash-4.4$ python load_maddy_data.py 
+attempting to load path '/mnt/ceph/users/lbrown/MouseData/Maddy/220827_stack6/registered_images/nuclei_reg8_29.tif'
+attempting to load path '/mnt/ceph/users/lbrown/MouseData/Maddy/220827_stack6/registered_label_images/label_reg8_29.tif'
+
+This script launches a lineage editor/viewer using data configured like 
+awatters@rusty:/mnt/ceph/users/lbrown/MouseData/Maddy/220827_stack6
+
+I launch this on rusty in an srun allocated core:
+
+[awatters@rustyamd2 ~]$ srun -N1 --pty bash -i
+
+srun: job 2024926 queued and waiting for resources
+srun: job 2024926 has been allocated resources
+
+(base) bash-4.4$ cd ~/repos/lineage_viewer/examples/
+(base) bash-4.4$ python load_rusty_test_data.py 
+
+Open gizmo using link (control-click / open link)
+
+<a href="http://10.250.145.112:34875/gizmo/http/MGR_1671465177684_6/index.html" target="_blank">Click to open</a> <br> 
+ GIZMO_LINK: http://10.250.145.112:34875/gizmo/http/MGR_1671465177684_6/index.html 
+ ....
+```
 
 # The graphical interface
 
 The graphical interface for the viewer displays in a web browser.
 For flexibility the example scripts do not start the browser interface automatically
-but instead provide a URL link so the user may choose what browser to use.  For example
+but instead provide a URL link so the user may choose what browser instance to use.  For example
 
 ```bash
 (base) bash-4.4$ python load_rusty_test_data.py 
@@ -85,7 +137,8 @@ Open gizmo using link (control-click / open link)
 ```
 
 The user may open the generated link `http://10.128.146.57:59663/gizmo/http/MGR_1671116590930_6/index.html`
-by control-clicking the link (on a Mac OS for example).
+by control-clicking the link (on a Mac OS for example).  In this case the "back end" parent process runs
+on the `rusty` cluster and the "front end" user interface runs on my Mac laptop.
 
 The interface starts with no timestamp selected.  With no timestamp selected only the lineage tree summary
 in the right panel displays.
@@ -330,4 +383,5 @@ in the forest.
 Please look to the source code of `lineage_forest.make_forest_from_haydens_json_graph` for example
 uses of these methods.
 
-
+It is possible to build the lineage forest structure manually using only the viewer interface
+by defining only node names for a forest but no parentage relationships.
