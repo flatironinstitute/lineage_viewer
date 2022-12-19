@@ -272,7 +272,7 @@ methods for finding the image and label volumes for a timestamp number (called a
 
 The following code fragment from the `examples/load_maddy_data.py` script
 illustrates two ways to define image loaders for a `LineageViewer`.
-At the top the `F.use_trivial_null_loaders()` method defines the loaders
+At the top the first `F.use_trivial_null_loaders()` method defines the loaders
 to always return `None` indicating that the images for the timestamp ordinal
 could not be found.
 
@@ -308,7 +308,7 @@ else:
     assert lab is not None, "Could not load image for: " + repr(test_ordinal)
 ```
 
-The `img_loader` function above loads an image for a timestamp ordinal 
+The second `img_loader` function loads an image for a timestamp ordinal 
 from a TIFF file using a file pattern.
 
 ### Loading KLB files
