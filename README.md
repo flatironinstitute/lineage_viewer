@@ -159,7 +159,7 @@ The lineage tree summary on the right side of the interface displays the lineage
 parent/child relationships among cells for the timestamps, with earlier time stamps at the
 top.  Cells with no parent or child relationship are not displayed.  The user may focus
 on one of the timestamps and its immediate previous timestamp by clicking the canvas.
-The user can move the focus up or down using the arrow keys when the mouse if hovered over
+The user can move the focus up or down using the arrow keys when the mouse is hovered over
 the canvas.
 
 ## The current and previous timestamp
@@ -175,8 +175,9 @@ current timestamp and the previous timestamp is displayed in the lineage detail 
 the bottom of the interface.  All cells of both timestamps will display in the detail
 view even if they don't have parent/child relationships.
 
-The user can identify a "selected" cell for the current and previous timestamps by clicking
-the rectangles that correspond to that cell.  The selections will be highlighted by outer rectangles.
+The user can identify a "selected" structure for the current and previous timestamps by clicking
+the rectangles that correspond to that structure.  The selections will be highlighted by outer rectangles
+in the timestamp detail and their projections will appear in the images (as described below).
 
 ## The microscopy volumes
 
@@ -247,12 +248,24 @@ to browse the file system for files or folders.
 
 # Loading the viewer
 
+This section describes how to load a lineage into the lineage viewer and
+how to specify the files containing the volume data corresponding to the timestamps
+of the lineage.
+
 In Python a `images_gizmos.LineageViewer` object is created using a 
 `lineage_forest.Forest` container 
 ```Python
+# Create and populate a Forest
 forest = lineage_viewer.lineage_forest.Forest()
+# ... define the lineage and specify the volume file locations ...
+viewer = images_gizmos.LineageViewer(forest, side=600, title="Lineage 28")
 ```
-which encapsulates the lineage forest and
+The `side` parameter determines the size of a side of the image rectangles.
+The `title` string appears at the top of the user interface.
+
+# Populating a Forest
+
+The `forest` object encapsulates the lineage forest and
 methods for finding the image and label volumes for a timestamp number (called an ordinal below).
 
 ## Defining the image loaders for a timestamp ordinal
