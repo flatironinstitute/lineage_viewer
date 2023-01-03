@@ -304,6 +304,17 @@ class Forest:
         assert loader is not None, "No loader for labels defined."
         return loader(ts_ordinal)
 
+    def create_nodes_for_labels_in_timestamp(self, ts_ordinal):
+        labels = self.load_labels_for_timestamp(ts_ordinal)
+        if labels is None:
+            print("WARNING: NO LABELS FOUND FOR ORDINAL", ts_ordinal)
+        else:
+            unique_labels = np.unique(labels)
+            for label in unique_labels:
+                if label > 0:
+                    node_name = "%03d_%03d" % (ts_ordinal, label)
+                    self.add_node(node_name, ts_ordinal, label)
+
     def load_klb_using_file_patterns(
         self,
         image_pattern="klbOut_Cam_Long_%(ordinal)05d.crop.klb",  # eg
