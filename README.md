@@ -74,7 +74,8 @@ The Github repository for this package includes a number of example scripts and 
 in the `examples` folder:
 
 - `examples/lineage_sample` -- This folder includes a complete "stand alone" example data set.
-- `examples/lineage_sample/load_sample_lineage.py` -- The "launch script".
+- `examples/lineage_sample/load_sample_lineage.py` -- The "launch script" for the example data set which loads a JSON description of the lineage.
+- `examples/lineage_sample/load_labels_only.py` -- A launch script which loads an "empty" lineage with nodes inferred from volume labels.
 - `examples/lineage_sample/LineageGraph.json` -- The JSON dump file defining the lineage forest.
 - `examples/lineage_sample/nuclei_reg8_2.tif` -- Microscopy volume for time stamp 2.
 - `examples/lineage_sample/nuclei_reg8_1.tif` -- Microscopy volume for time stamp 1.
@@ -83,14 +84,17 @@ in the `examples` folder:
 - `examples/lineage_sample/get files.ipynb` -- Historical notebook used to get the data files
 - `examples/Combined.json` -- The JSON dump file for `220827_stack1`
 - `examples/nuc_to_cells.csv` -- The membrane label correction CSV file for `220827_stack1` (from Masha).
-- `examples/load_rusty_test_data.py` -- An example script for loading data on the `rusty` cluster for `220827_stack1` using KLB.
-- `examples/load_maddy_data.py` -- An example script for loading data on the `rusty` cluster for `220827_stack6` using TIFF.
-- `examples/awatters_test_no_parents.py` -- An example script that loads nodes with no parentage relationships.
+- `examples/load_rusty_test_data.py` -- An example script for loading data on the `rusty` cluster for `220827_stack1` using KLB volume data.
+- `examples/load_maddy_data.py` -- An example script for loading data on the `rusty` cluster for `220827_stack6` using TIFF volume data.
+- `examples/awatters_test_no_parents.py` -- An example script that loads nodes from JSON with no parentage relationships.
+
+The remainder of this document describes the components of the interactive user interface
+followed by a discussion of how to create a viewer and attach it to data sources.
 
 ## A note about using the interface from `rusty`
 
-For better performance do not launch the interface on rusty from the login nodes.
-Instead allocate a node using `srun` to get a node with lower usage and better file system access:
+For better performance do not launch the interface on rusty (or another compute cluster) from the login nodes.
+Instead allocate a node using `srun` (or similar) to get a node with lower usage and better file system access:
 ```bash
 (base) C02XD1KGJGH8:lineage_viewer awatters$ ssh rusty
 No Slurm jobs found on node.
@@ -263,6 +267,12 @@ viewer = images_gizmos.LineageViewer(forest, side=600, title="Lineage 28")
 The `side` parameter determines the size of a side of the image rectangles.
 The `title` string appears at the top of the user interface.
 
+To initialize a viewer you need to create a Forest object and
+
+- Provide accessor functions which load label volume and image volume data as numpy arrays from the file system.
+- Define the nodes of the lineage and identify the labels and timestamps associated with each node.
+- Optionally define any parent/child relationship between the nodes.
+
 # Populating a Forest
 
 The `forest` object encapsulates the lineage forest and
@@ -308,8 +318,20 @@ else:
     assert lab is not None, "Could not load image for: " + repr(test_ordinal)
 ```
 
-The second `img_loader` function loads an image for a timestamp ordinal 
-from a TIFF file using a file pattern.
+in the second method the `img_loader` function loads an image for a timestamp ordinal 
+from a TIFF file using a file pattern.  In this case the label volume and image volume for timestamp 21
+are stored in the files
+```
+/mnt/ceph/users/lbrown/MouseData/Maddy/220827_stack6/registered_images/nuclei_reg8_21.tif
+/mnt/ceph/users/lbrown/MouseData/Maddy/220827_stack6/registered_label_images/label_reg8_21.tif
+```
+
+The lines
+```Python
+    F.image_volume_loader = img_loader
+    F.label_volume_loader = label_loader
+```
+attach the loader functions to the forest object `F`.
 
 ### Loading KLB files
 
@@ -359,6 +381,19 @@ For example the label number derived from the node name `009_004` is 4.
 
 Please examine the source code for `lineage_forest.make_forest_from_haydens_json_graph` for
 additional options and details about this function.
+
+### Inferring nodes with no parent relationships from the label volumes
+
+The `examples/lineage_sample/load_labels_only.py` prepares a lineage forest for the `lineage_sample` data
+with no parent relationships.  In this case the nodes for the timestamps are inferred from the
+labels in the label volumes.  The forest object `F` provides a convenience method to infer the labels,
+used in this code fragment:
+
+```Python
+# **** Create nodes inferred from label volumes for timestamps 1 and 2
+for timestamp_ordinal in range(1, 3):
+    F.create_nodes_for_labels_in_timestamp(timestamp_ordinal)
+```
 
 ### Populating a forest by listing nodes and parent relationships in a script
 
