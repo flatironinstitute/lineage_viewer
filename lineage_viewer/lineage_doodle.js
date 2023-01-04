@@ -57,7 +57,21 @@ class LineageDisplay {
             0, 0, this.width, this.height,
             -1, json_ob.height + 1, json_ob.width + 1, -1,
         );
-        self.frame = f;
+        this.frame = f;
+        // add stripes
+        for (var i=0; i<=json_ob.height; i += 2) {
+            var color = "#aaa";
+            if (i % 2 == 0) {
+                color = "#ddd"
+            }
+            f.frame_rect({
+                color: color,
+                x: 0,
+                y: i,
+                w: json_ob.width,
+                h: 1,
+            })
+        }
         // outline the event area
         this.outline_rect = f.frame_rect({
             color: "#777",
@@ -238,6 +252,7 @@ class TimeSliceDetail {
             var x = n.x;
             var y = n.y;
             var color = n.color || "#999";
+            var label = n.label || "XXX";
             f.frame_rect({
                 x: x,
                 y: y,
@@ -247,6 +262,14 @@ class TimeSliceDetail {
                 dy: 0.2,
                 color: color,
             });
+            f.text({
+                x: x + 0.5,
+                y: y + 0.3,
+                text: "" + label,
+                align: "center",
+                color: "white",
+                font:"italic 20px Courier",
+            })
         }
         
         for (var id in i2n) {
