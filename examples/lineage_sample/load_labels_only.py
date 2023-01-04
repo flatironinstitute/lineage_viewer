@@ -1,7 +1,10 @@
 
 """
 This script creates a lineage forest with no parent relationships.
-The label names are inferred from the label volume data
+The label names are inferred from the label volume data.
+Both the label volumes and the image volumes are loaded from tiff formatted files.
+
+The node inference is done at the "for" loop marked "***"
 """
 
 
@@ -15,6 +18,10 @@ import os
 F = lineage_forest.Forest()
 
 # Define the volume loader functions for the forest.
+
+# For example the data for timestamp 2 will be loaded from
+# "nuclei_reg8_2.tif" and "label_reg8_2.tif".
+
 image_pattern = "nuclei_reg8_%(ordinal)d.tif"
 label_pattern = "label_reg8_%(ordinal)d.tif"
 
@@ -33,8 +40,7 @@ def label_loader(ordinal):
 F.image_volume_loader = img_loader
 F.label_volume_loader = label_loader
 
-# Create nodes inferred from label volumes for timestamps 1 and 2
-
+# **** Create nodes inferred from label volumes for timestamps 1 and 2
 for timestamp_ordinal in range(1, 3):
     F.create_nodes_for_labels_in_timestamp(timestamp_ordinal)
 
