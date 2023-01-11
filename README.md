@@ -2,6 +2,7 @@
 Graphical interface for editing a lineage and viewing related microscopy images.
 
 This package implements a graphical interface designed for use in
+microscopy studies of
 early embryology.  The visualization allows the user to explore the
 relationship between time sequences of microscopy image volumes of an embryo, segmentation
 volumes for the embryo identifying cell structures, and cell lineage trees for the
