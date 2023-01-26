@@ -233,11 +233,18 @@ class TimeSliceDetail {
         */
     };
     load_json(json_ob) {
-        var that = this;
         this.json_ob = json_ob;
         this.hovering_node = null;
         this.selected_child = null;
         this.selected_ancestor = null;
+        this.selected_children = [];
+        this.selected_ancestors = [];
+        this.id_to_selected_node = {};
+        this.draw_timeslices();
+    }
+    draw_timeslices() {
+        var that = this;
+        var json_ob = this.json_ob;
         this.status_element.html("Drawing timeslice.");
         var element = this.canvas_element;
         element.reset_canvas();
@@ -247,6 +254,7 @@ class TimeSliceDetail {
         );
         self.frame = f;
         var i2n = json_ob.id_to_node;
+        // node rectangles and labels
         for (var id in i2n) {
             var n = i2n[id];
             var x = n.x;
@@ -271,7 +279,7 @@ class TimeSliceDetail {
                 font:"italic 20px Courier",
             })
         }
-        
+        // parent link lines        
         for (var id in i2n) {
             var n = i2n[id];
             var pid = n.parent_id;
@@ -292,30 +300,34 @@ class TimeSliceDetail {
                 }
             }
         } 
-        this.child_rect = f.frame_rect({
-            name: true,
-            color: invisible,
-            x: 0,
-            y: 0,
-            w: 0.8,
-            h: 0.8,
-            dx: 0.1,
-            dy: 0.1,
-            fill: false,
-            lineWidth: 3,
-        });
-        this.ancestor_rect = f.frame_rect({
-            name: true,
-            color: invisible,
-            x: 0,
-            y: 0,
-            w: 0.8,
-            h: 0.8,
-            dx: 0.1,
-            dy: 0.1,
-            fill: false,
-            lineWidth: 3,
-        });
+        // selected node markers
+        this.selected_children = [];
+        this.selected_ancestors = [];
+        for (var id in this.id_to_selected_node) {
+            var node = this.id_to_selected_node[id];
+            if (node) {
+                var color = "silver";
+                if (node.is_child) {
+                    this.selected_children.push(id);
+                    color = "black";
+                } else {
+                    this.selected_ancestors.push(id);
+                }
+                f.frame_rect({
+                    //name: true,
+                    color: color,
+                    x: node.x,
+                    y: node.y,
+                    w: 0.8,
+                    h: 0.8,
+                    dx: 0.1,
+                    dy: 0.1,
+                    fill: false,
+                    lineWidth: 3,
+                });
+            }
+        }
+        // hover indicator
         this.hover_rect = f.frame_rect({
             name: true,
             color: invisible,
@@ -324,6 +336,7 @@ class TimeSliceDetail {
             w: 1,
             h: 1,
         });
+        // event area
         this.event_rect = f.frame_rect({
             name: true,
             color: invisible,
@@ -366,43 +379,44 @@ class TimeSliceDetail {
         var loc = event.model_location;
         var nearest = this.nearest_node(loc);
         if (nearest.is_child) {
-            //console.log("selected child", nearest);
-            this.child_rect.change({
-                x: nearest.x,
-                y: nearest.y,
-                color: "black",
-            });
             this.selected_child = nearest;
         } else {
-            //console.log("selected ancestor", nearest);
-            this.ancestor_rect.change({
-                x: nearest.x,
-                y: nearest.y,
-                color: "silver",
-            });
             this.selected_ancestor = nearest;
         }
         this.update_status();
+        var selected_id = nearest.identity;
+        var id2s = this.id_to_selected_node;
+        if (id2s[selected_id]) {
+            // unselect
+            id2s[selected_id] = null;
+        } else {
+            // select
+            id2s[selected_id] = nearest;
+        }
+        // redraw
+        this.draw_timeslices();
         var callback = this.status_change_callback;
         if (callback) {
-            var cid = null
-            var pid = null
-            if (this.selected_child) {
-                cid = this.selected_child.identity
-            }
-            if (this.selected_ancestor) {
-                pid = this.selected_ancestor.identity;
-            }
-            callback(cid, pid)
+            //console.log("select_node callback", this.selected_children, this.selected_ancestors)
+            callback(this.selected_children, this.selected_ancestors)
         }
     }
-    update_selections(child_identity, ancestor_identity) {
+    update_selections(child_identities, ancestor_identities) {
         //console.log("update selection", child_identity, ancestor_identity)
         var i2n = this.json_ob.id_to_node;
-        this.selected_ancestor = i2n[ancestor_identity];
-        this.selected_child = i2n[child_identity];
-        this.update_rectangles()
+        this.id_to_selected_node = {};
+        for (var id of child_identities) {
+            this.id_to_selected_node[id] = i2n[id];
+        }
+        for (var id of ancestor_identities) {
+            this.id_to_selected_node[id] = i2n[id];
+        }
+        this.draw_timeslices();
+        //this.selected_ancestor = i2n[ancestor_identity];
+        //this.selected_child = i2n[child_identity];
+        //this.update_rectangles()
     };
+    /*
     update_rectangles() {
         this.update_rectangle(this.child_rect, this.selected_child, "black");
         this.update_rectangle(this.ancestor_rect, this.selected_ancestor, "silver");
@@ -422,6 +436,7 @@ class TimeSliceDetail {
             });
         }
     }
+    */
     no_hover() {
         this.hovering_node = null;
         this.hover_rect.change({

@@ -179,24 +179,44 @@ class LineageViewer:
         self.update_selected_nodes(compare.child_display.focus_node(), compare.parent_display.focus_node())
         #compare.display_images()
 
-    def update_selected_ids(self, child_id, parent_id):
+    def update_selected_ids(self, child_ids, parent_ids):
+        # temporary for debugging
+        print("update selected ids", child_ids, parent_ids)
+        self.child_ids = child_ids
+        self.parent_ids = parent_ids
+        child_id = parent_id = None
+        if child_ids and len(child_ids) == 1:
+            child_id = child_ids[0]
+        if parent_ids and len(parent_ids) == 1:
+            parent_id = parent_ids[0]
+        self.update_selected_ids0(child_id, parent_id)
+
+    def update_selected_ids0(self, child_id, parent_id):
+        # temp to delete...
         id_to_node = self.forest.id_to_node
         child_node = id_to_node.get(child_id)
         parent_node = id_to_node.get(parent_id)
-        self.update_selected_nodes(child_node, parent_node)
+        self.update_selected_nodes(child_node, parent_node, update_detail=False)
 
-    def update_selected_nodes(self, child_node, parent_node):
+    def update_selected_nodes(self, child_node, parent_node, update_detail=True):
+        # temporary -- need to generalize for multiselect
         cid = pid = None
+        cids = []
+        pids = []
         if child_node is not None:
             cid = child_node.node_id
+            cids = [cid]
         if parent_node is not None:
             pid = parent_node.node_id
+            pids = [pid]
         compare = self.compare
         compare.child_display.focus_on_node(child_node)
         compare.parent_display.focus_on_node(parent_node)
         compare.display_images()
-        if cid is not None and pid is not None:
-            self.detail.update_selections(cid, pid)
+        #if cid is not None and pid is not None:
+        #    self.detail.update_selections(cid, pid)
+        if update_detail:
+            self.detail.update_selections(cids, pids)
         # set buttons enabled or not
         child_current_parent_id = None
         if child_node is not None and child_node.parent is not None:

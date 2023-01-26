@@ -33,8 +33,8 @@ class TimeSliceDetail:
     def on_select_node(self, callback):
         do(self.detail_link.on_status_change(callback))
 
-    def update_selections(self, child_id, parent_id):
-        do(self.detail_link.update_selections(child_id, parent_id))
+    def update_selections(self, child_ids, parent_ids):
+        do(self.detail_link.update_selections(child_ids, parent_ids))
 
     def load_json(self, json_ob):
         do(self.detail_link.load_json(json_ob))
