@@ -524,6 +524,54 @@ class CachedVolumeData:
         self.label_volume = label_volume
         self.image_volume = image_volume
 
+class MaskImaging:
+
+    def __init__(self, label_array, label_to_color):
+        self.label_array = np.array(label_array, dtype=np.int32)
+        self.shape = self.label_array.shape
+        self.label_to_color = label_to_color
+        self.maxlabel = max(self.label_array.max(), max(label_to_color.keys()))
+        self.label_mapper = np.zeros((self.maxlabel + 1,), dtype=np.int32)
+        for label in label_to_color.keys():
+            self.label_mapper[label] = label
+        self.restricted_label_array = self.label_mapper[self.label_array]
+        self.selected_label_mask = (self.restricted_label_array > 0).astype(np.uint8)
+        self.color_mapper = np.zeros((self.maxlabel + 1, 3), dtype=np.int32)
+        for label in label_to_color.keys():
+            self.color_mapper[label] = label_to_color[label]
+        #self.extruded_labels = operations3d.extrude0(self.restricted_label_array)
+        #REC = self.restricted_extruded_colors = self.color_mapper[self.extruded_labels]
+        boundaries = None
+        for label in label_to_color.keys():
+            target = (label_array == label).astype(np.ubyte)
+            projected = operations3d.extrude0(target)
+            mask = colorizers.boundary_image(projected, 1)
+            if boundaries is None:
+                boundaries = mask * label
+            else:
+                boundaries = np.choose(mask, [boundaries, label])
+        self.boundaries = boundaries
+        self.colored_boundaries = self.color_mapper[boundaries]
+
+    def extrusion(self, speckle_ratio=None):
+        label_array = self.restricted_label_array
+        if speckle_ratio is not None:
+            assert speckle_ratio > 0 and speckle_ratio < 1, "bad speckle ratio: " + repr(speckle_ratio)
+            r = np.random.random(label_array.shape)
+            filter = (r < speckle_ratio)
+            label_array = np.where(filter, label_array, 0)
+        return operations3d.extrude0(label_array)
+
+    def colored_extrusion(self, speckle_ratio=None):
+        extrusion = self.extrusion(speckle_ratio=speckle_ratio)
+        return self.color_mapper[extrusion]
+
+    def overlay_boundaries(self, on_image, color=None):
+        if color is None:
+            color = self.colored_boundaries
+        mask = (self.boundaries > 0)
+        return colorizers.overlay_color(on_image, mask, color, center=True)
+
 class ImageAndLabels2d:
 
     """
@@ -655,7 +703,7 @@ class ImageAndLabels2d:
         self.volume_shape = self.label_volume.shape
 
     def project2d(self, comparison, parent=False):
-        self.valid_projection = False # defaul
+        self.valid_projection = False # default
         image2d = labels2d = None
         if self.label_volume is not None:
             rlabels = comparison.rotate_image(self.label_volume, parent=parent)
@@ -723,6 +771,7 @@ class ImageAndLabels2d:
             self.focus_color = node.color_array
 
     def create_mask(self):
+        "create the focus mask"
         label = self.focus_label
         labels = self.labels
         if label is None or labels is None:
