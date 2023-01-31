@@ -171,7 +171,7 @@ class LineageViewer:
             self.compare.set_child_timestamp(ordinal)
             if ordinal > 0:
                 self.compare.set_parent_timestamp(ordinal - 1)
-            self.compare.project2d()
+            self.compare.rotate_volumes()
             self.compare.display_images()
 
     def update_label_selection(self, *ignored):
@@ -181,7 +181,7 @@ class LineageViewer:
 
     def update_selected_ids(self, child_ids, parent_ids):
         # temporary for debugging
-        print("update selected ids", child_ids, parent_ids)
+        #print("update selected ids", child_ids, parent_ids)
         self.child_ids = child_ids
         self.parent_ids = parent_ids
         child_id = parent_id = None
@@ -417,7 +417,7 @@ class CompareTimeStamps:
     def reload_volumes_and_images(self):
         self.child_display.reload_cached_volumes()
         self.parent_display.reload_cached_volumes()
-        self.project2d()
+        self.rotate_volumes()
         self.display_images()
 
     def reset_slider_maxes(self):
@@ -472,12 +472,12 @@ class CompareTimeStamps:
             self.K_slider.values,
         ]
         self.slicing = np.array(s, dtype=np.int)
-        self.project2d()
+        self.rotate_volumes()
         self.display_images()
 
-    def project2d(self):
-        self.parent_display.project2d(self, parent=True)
-        self.child_display.project2d(self, parent=False)
+    def rotate_volumes(self):
+        self.parent_display.rotate_volumes(self, parent=True)
+        self.child_display.rotate_volumes(self, parent=False)
 
     def display_images(self):
         self.parent_display.create_mask()
@@ -526,35 +526,55 @@ class CachedVolumeData:
 
 class MaskImaging:
 
-    def __init__(self, label_array, label_to_color):
+    def __init__(self, label_array, selected_labels, label_to_color):
         self.label_array = np.array(label_array, dtype=np.int32)
+        self.selected_labels = selected_labels
         self.shape = self.label_array.shape
         self.label_to_color = label_to_color
-        self.maxlabel = max(self.label_array.max(), max(label_to_color.keys()))
+        self.maxlabel = self.label_array.max()
+        if label_to_color:
+            self.maxlabel = max(self.maxlabel, max(label_to_color.keys()))
+        #self.maxlabel = max(self.label_array.max(), max(label_to_color.keys()))
         self.label_mapper = np.zeros((self.maxlabel + 1,), dtype=np.int32)
-        for label in label_to_color.keys():
+        for label in selected_labels:
             self.label_mapper[label] = label
         self.restricted_label_array = self.label_mapper[self.label_array]
         self.selected_label_mask = (self.restricted_label_array > 0).astype(np.uint8)
         self.color_mapper = np.zeros((self.maxlabel + 1, 3), dtype=np.int32)
         for label in label_to_color.keys():
             self.color_mapper[label] = label_to_color[label]
+        self.selected_color_mapper = np.zeros(self.color_mapper.shape, dtype=np.int32)
+        for label in selected_labels:
+            self.selected_color_mapper[label] = self.color_mapper[label]
         #self.extruded_labels = operations3d.extrude0(self.restricted_label_array)
         #REC = self.restricted_extruded_colors = self.color_mapper[self.extruded_labels]
         boundaries = None
-        for label in label_to_color.keys():
-            target = (label_array == label).astype(np.ubyte)
-            projected = operations3d.extrude0(target)
-            mask = colorizers.boundary_image(projected, 1)
-            if boundaries is None:
-                boundaries = mask * label
-            else:
-                boundaries = np.choose(mask, [boundaries, label])
+        if selected_labels:
+            for label in selected_labels:
+                target = (label_array == label).astype(np.ubyte)
+                projected = operations3d.extrude0(target)
+                mask = colorizers.boundary_image(projected, 1)
+                if boundaries is None:
+                    boundaries = mask * label
+                else:
+                    boundaries = np.choose(mask, [boundaries, label])
         self.boundaries = boundaries
         self.colored_boundaries = self.color_mapper[boundaries]
 
-    def extrusion(self, speckle_ratio=None):
-        label_array = self.restricted_label_array
+    def max_value_projection(self, r_image, mask=False, restricted=False):
+        if self.nontrivial() and restricted:
+            r_image = np.where(self.restricted_label_array > 0, r_image, 0)
+        elif mask or restricted:
+            r_image = np.where(self.label_array > 0, r_image, 0)
+        return r_image.max(axis=0)
+
+    def nontrivial(self):
+        return (len(self.selected_labels) > 0)
+
+    def extrusion(self, speckle_ratio=None, restricted=False):
+        label_array = self.label_array
+        if restricted:
+            label_array = self.restricted_label_array
         if speckle_ratio is not None:
             assert speckle_ratio > 0 and speckle_ratio < 1, "bad speckle ratio: " + repr(speckle_ratio)
             r = np.random.random(label_array.shape)
@@ -567,6 +587,8 @@ class MaskImaging:
         return self.color_mapper[extrusion]
 
     def overlay_boundaries(self, on_image, color=None):
+        if self.boundaries is None:
+            return on_image
         if color is None:
             color = self.colored_boundaries
         mask = (self.boundaries > 0)
@@ -609,19 +631,22 @@ class ImageAndLabels2d:
 
     def reset(self, timestamp=None, forest=None, comparison=None):
         self.timestamp = timestamp
+        self.forest = forest
         #self.color_mapping_array = timestamp.color_mapping_array()
-        self.img = None
-        self.labels = None
-        self.focus_mask = None
-        self.focus_color = None
-        self.focus_label = None
-        self._focus_node = None
-        self.compare_mask = None
-        self.compare_color = None
+        self.img = None  # 2d image before annotation
+        self.labels = None  # 2d labels before annotation
+        self.labels_imaging = None  # labels imaging encapsulation
+        self._focus_nodes = []  # currently selected nodes
+        self.compare_labels_imaging = None  # comparison labels imaging encapsulation
+        #self.focus_mask = None # labels mask for outlines
+        #self.focus_color = None
+        #self.focus_label = None
+        #self._focus_node = None
+        #self.compare_mask = None
+        #self.compare_color = None
         self.volume_shape = None
         self.label_volume = None
         self.image_volume = None
-        self.volume_shape = None
         # flag set when the projection is derived from real data
         self.valid_projection = False
         if comparison is not None:
@@ -654,7 +679,7 @@ class ImageAndLabels2d:
         if cached:
             self.load_volumes(cached.label_volume, cached.image_volume)
 
-    def focus_node(self):
+    def get_focus_node_delete(self):
         if self._focus_node is not None:
             return self._focus_node
         timestamp = self.timestamp
@@ -702,20 +727,21 @@ class ImageAndLabels2d:
             self.image_volume = im
         self.volume_shape = self.label_volume.shape
 
-    def project2d(self, comparison, parent=False):
+    def rotate_volumes(self, comparison, parent=False):
         self.valid_projection = False # default
-        image2d = labels2d = None
+        #image2d = labels2d = None
         if self.label_volume is not None:
             rlabels = comparison.rotate_image(self.label_volume, parent=parent)
             self.rotated_labels = rlabels
-            labels2d = operations3d.extrude0(rlabels)
+            #labels2d = operations3d.extrude0(rlabels)
         if self.image_volume is not None:
             rimage = comparison.rotate_image(self.image_volume, parent=parent)
-            image2d = rimage.max(axis=0)  # maximum value projection.
-            if self.enhance:
-                image2d = colorizers.enhance_contrast(image2d, cutoff=0.05)
-            self.valid_projection = True
-        self.load_images(image2d, labels2d)
+            self.rotated_image = rimage
+            #image2d = rimage.max(axis=0)  # maximum value projection.
+            #if self.enhance:
+            #    image2d = colorizers.enhance_contrast(image2d, cutoff=0.05)
+            #self.valid_projection = True
+        #self.load_images(image2d, labels2d)
 
     def info(self, text):
         self.info_area.text(text)
@@ -758,7 +784,7 @@ class ImageAndLabels2d:
             self.focus_color = white
             redisplay = True
         if redisplay:
-            self.create_mask()
+            #self.create_mask()
             self.display_images()
 
     def focus_on_node(self, node):
@@ -771,6 +797,22 @@ class ImageAndLabels2d:
             self.focus_color = node.color_array
 
     def create_mask(self):
+        self.labels_imaging = None
+        rotated_labels = self.rotated_labels
+        if rotated_labels is None:
+            self.info("Can't create mask -- no rotated labels.")
+            return
+        nodes = self._focus_nodes
+        all_nodes = self.timestamp.label_to_node.values()
+        label_to_color = {}
+        for node in all_nodes:
+            color = node.color_array
+            label = node.label
+            if color is not None and label is not None:
+                label_to_color[label] = color
+        self.labels_imaging = MaskImaging(rotated_labels, nodes, label_to_color)
+
+    def create_mask_delete(self):
         "create the focus mask"
         label = self.focus_label
         labels = self.labels
@@ -781,17 +823,19 @@ class ImageAndLabels2d:
         if node is not None:
             assert node.color_array is not None, "color not assigned to node: " + repr(node)
             self.focus_color = node.color_array
-        #self.focus_mask = colorizers.boundary_image(labels, label)
         rlabels = self.rotated_labels
         target = (rlabels == label).astype(np.ubyte)
         projected = operations3d.extrude0(target)
         self.focus_mask = colorizers.boundary_image(projected, 1)
 
     def clear_images(self):
-        self.load_images(None, None)
-        self.display_images()
+        #self.load_images(None, None)
+        #self.display_images()
+        self.image_display.change_array(dummy_image)
+        self.labels_display.change_array(dummy_image)
 
-    def load_images(self, img, labels):
+    def load_images_delete(self, img, labels):
+        "load images *before* added annotations (like outlines)."
         if img is None:
             self.img = dummy_image
             self.valid_projection = False
@@ -808,10 +852,34 @@ class ImageAndLabels2d:
             self.labels = labels
 
     def load_mask(self, other):
-        self.compare_mask = other.focus_mask
-        self.compare_color = other.focus_color
+        #self.compare_mask = other.focus_mask
+        #self.compare_color = other.focus_color
+        self.compare_labels_imaging = other.labels_imaging
 
     def display_images(self):
+        imaging = self.labels_imaging
+        c_imaging = self.compare_labels_imaging
+        rimage = self.rotated_image
+        #if imaging.nontrivial() and self.mask:
+        #    rimage = np.where(imaging.selected_label_mask, rimage, 0)
+        #image2d = rimage.max(axis=0)  # maximum value projection.
+        image2d = imaging.max_value_projection(rimage, mask=self.mask, restricted=False)
+        if self.enhance:
+            image2d = colorizers.enhance_contrast(image2d, cutoff=0.05)
+        img = colorizers.scale256(image2d)  # ???? xxxx
+        # add color boundaries to img
+        img = imaging.overlay_boundaries(img)
+        img = c_imaging.overlay_boundaries(img)
+        # get labels with white outlines
+        labels = imaging.extrusion(speckle_ratio=None, restricted=False)
+        self.labels = labels
+        colored_labels = imaging.color_mapper[labels]
+        white = [255,255,255]
+        labels = imaging.overlay_boundaries(labels, white)
+        self.image_display.change_array(img)
+        self.labels_display.change_array(colored_labels)
+
+    def display_images_delete(self):
         #label = self.focus_label
         labels = self.labels
         if labels is None:
