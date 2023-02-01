@@ -176,20 +176,25 @@ class LineageViewer:
 
     def update_label_selection(self, *ignored):
         compare = self.compare
-        self.update_selected_nodes(compare.child_display.focus_node(), compare.parent_display.focus_node())
+        self.update_selected_ids(
+            compare.child_display.selected_ids(),
+            compare.parent_display.selected_ids(),
+            update_detail=True
+        )
+        #self.update_selected_nodes(compare.child_display.focus_node(), compare.parent_display.focus_node())
         #compare.display_images()
 
-    def update_selected_ids(self, child_ids, parent_ids):
+    def update_selected_ids(self, child_ids, parent_ids, update_detail=False):
         # temporary for debugging
         #print("update selected ids", child_ids, parent_ids)
         self.child_ids = child_ids
         self.parent_ids = parent_ids
-        child_id = parent_id = None
-        if child_ids and len(child_ids) == 1:
-            child_id = child_ids[0]
-        if parent_ids and len(parent_ids) == 1:
-            parent_id = parent_ids[0]
-        self.update_selected_ids0(child_id, parent_id)
+        compare = self.compare
+        compare.child_display.select_ids(child_ids)
+        compare.parent_display.select_ids(parent_ids)
+        compare.display_images()
+        if update_detail:
+            self.detail.update_selections(child_ids, parent_ids)
 
     def update_selected_ids0(self, child_id, parent_id):
         # temp to delete...
@@ -636,7 +641,7 @@ class ImageAndLabels2d:
         self.img = None  # 2d image before annotation
         self.labels = None  # 2d labels before annotation
         self.labels_imaging = None  # labels imaging encapsulation
-        self._focus_nodes = []  # currently selected nodes
+        self.label_to_nodes = {}  # currently selected nodes indexed by label
         self.compare_labels_imaging = None  # comparison labels imaging encapsulation
         #self.focus_mask = None # labels mask for outlines
         #self.focus_color = None
@@ -749,7 +754,41 @@ class ImageAndLabels2d:
     def configure_gizmo(self):
         self.labels_display.on_pixel(self.pixel_callback)
 
+    def selected_ids(self):
+        return [node.node_id for node in self.label_to_nodes.values()]
+
+    def select_ids(self, ids):
+        self.label_to_nodes = {}
+        for identity in ids:
+            node = self.forest.id_to_node.get(identity)
+            if node is not None:
+                label = node.label
+                if label is not None:
+                    self.label_to_nodes[label] = node
+
     def pixel_callback(self, event):
+        row = event["pixel_row"]
+        column = event["pixel_column"]
+        labels = self.labels
+        if labels is None:
+            self.info("No labels to select")
+            return 
+        label = labels[row, column]
+        node = self.timestamp.label_to_node.get(label)
+        if node is not None:
+            if label in self.label_to_nodes:
+                self.info("Unselecting " + repr(node))
+                del self.label_to_nodes[label]
+            else:
+                self.info("Selecting " + repr(node))
+                self.label_to_nodes[label] = node
+            callback = self.on_label_select_callback
+            if callback:
+                callback()
+        else:
+            self.info("No node for label: " + repr(label))
+
+    def pixel_callback_delete(self, event):
         row = event["pixel_row"]
         column = event["pixel_column"]
         labels = self.labels
@@ -802,7 +841,8 @@ class ImageAndLabels2d:
         if rotated_labels is None:
             self.info("Can't create mask -- no rotated labels.")
             return
-        nodes = self._focus_nodes
+        #nodes = list(self.label_to_nodes.values())
+        labels = list(self.label_to_nodes.keys())
         all_nodes = self.timestamp.label_to_node.values()
         label_to_color = {}
         for node in all_nodes:
@@ -810,7 +850,7 @@ class ImageAndLabels2d:
             label = node.label
             if color is not None and label is not None:
                 label_to_color[label] = color
-        self.labels_imaging = MaskImaging(rotated_labels, nodes, label_to_color)
+        self.labels_imaging = MaskImaging(rotated_labels, labels, label_to_color)
 
     def create_mask_delete(self):
         "create the focus mask"
