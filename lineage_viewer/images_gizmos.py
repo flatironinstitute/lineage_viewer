@@ -915,7 +915,7 @@ class ImageAndLabels2d:
         self.labels = labels
         colored_labels = imaging.color_mapper[labels]
         white = [255,255,255]
-        labels = imaging.overlay_boundaries(labels, white)
+        colored_labels = imaging.overlay_boundaries(colored_labels, white)
         self.image_display.change_array(img)
         self.labels_display.change_array(colored_labels)
 
