@@ -23,6 +23,9 @@ YES_BLUR = "✓ blurred"
 NO_BLUR = "✖ no blur"
 YES_MASK = "✓ masked"
 NO_MASK = "✖ no mask"
+YES_SPECKLE = "✓ speckled"
+NO_SPECKLE = "✖ not speckled"
+STD_SPECKLE_RATIO = 0.02
 
 class LineageViewer:
 
@@ -251,14 +254,23 @@ class CompareTimeStamps:
         self.enhanced_link = ClickableText(NOT_ENHANCED, on_click=self.toggle_enhanced)
         self.blur_link = ClickableText(NO_BLUR, on_click=self.toggle_blur)
         self.mask_link = ClickableText(NO_MASK, on_click=self.toggle_mask)
+        self.speckle_link = ClickableText(NO_SPECKLE, on_click=self.toggle_speckle)
         self.enhanced_images = False
         self.blur_images = False
         self.mask_images = False
+        self.speckle_images = False
+        info_bar = [
+            self.enhanced_link, 
+            self.blur_link, 
+            self.mask_link, 
+            self.speckle_link,
+            self.info_area,
+        ]
         self.displays = Stack([ 
             self.title_area,
             self.parent_display.gizmo,
             self.child_display.gizmo,
-            [self.enhanced_link, self.blur_link, self.mask_link, self.info_area],
+            info_bar,
         ])
         sliders = self.get_sliders(side)
         self.gizmo = Shelf([ 
@@ -417,6 +429,16 @@ class CompareTimeStamps:
             self.mask_link.text(YES_MASK)
         else:
             self.mask_link.text(NO_MASK)
+        self.reload_volumes_and_images()
+
+    def toggle_speckle(self, *ignored):
+        e = self.speckle_images = not self.speckle_images
+        self.child_display.speckle = e
+        self.parent_display.speckle = e
+        if e:
+            self.speckle_link.text(YES_SPECKLE)
+        else:
+            self.speckle_link.text(NO_SPECKLE)
         self.reload_volumes_and_images()
 
     def reload_volumes_and_images(self):
@@ -629,6 +651,7 @@ class ImageAndLabels2d:
         self.blur = False
         self.enhance = False
         self.mask = False
+        self.speckle = False
         self.reset(timestamp)
 
     def on_label_select(self, callback):
@@ -911,8 +934,15 @@ class ImageAndLabels2d:
         img = imaging.overlay_boundaries(img)
         img = c_imaging.overlay_boundaries(img)
         # get labels with white outlines
-        labels = imaging.extrusion(speckle_ratio=None, restricted=False)
+        speckle_ratio = None
+        restricted = False
+        if self.speckle:
+            speckle_ratio = STD_SPECKLE_RATIO
+        labels = imaging.extrusion(speckle_ratio=speckle_ratio, restricted=restricted)
         self.labels = labels
+        if self.speckle:
+            # unspeckled array for mouse clicks
+            self.labels = imaging.extrusion(speckle_ratio=None, restricted=restricted)
         colored_labels = imaging.color_mapper[labels]
         white = [255,255,255]
         colored_labels = imaging.overlay_boundaries(colored_labels, white)
