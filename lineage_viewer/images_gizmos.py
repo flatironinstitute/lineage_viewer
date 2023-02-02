@@ -24,8 +24,11 @@ NO_BLUR = "✖ no blur"
 YES_MASK = "✓ masked"
 NO_MASK = "✖ no mask"
 YES_SPECKLE = "✓ speckled"
-NO_SPECKLE = "✖ not speckled"
-STD_SPECKLE_RATIO = 0.02
+NO_SPECKLE = "✖ unspeckled"
+YES_RESTRICT = "✓ restricted"
+NO_RESTRICT = "✖ unrestricted"
+
+STD_SPECKLE_RATIO = 0.03
 
 class LineageViewer:
 
@@ -255,15 +258,18 @@ class CompareTimeStamps:
         self.blur_link = ClickableText(NO_BLUR, on_click=self.toggle_blur)
         self.mask_link = ClickableText(NO_MASK, on_click=self.toggle_mask)
         self.speckle_link = ClickableText(NO_SPECKLE, on_click=self.toggle_speckle)
+        self.restrict_link = ClickableText(NO_RESTRICT, on_click=self.toggle_restrict)
         self.enhanced_images = False
         self.blur_images = False
         self.mask_images = False
         self.speckle_images = False
+        self.restrict_images = False
         info_bar = [
             self.enhanced_link, 
             self.blur_link, 
             self.mask_link, 
             self.speckle_link,
+            self.restrict_link,
             self.info_area,
         ]
         self.displays = Stack([ 
@@ -441,6 +447,16 @@ class CompareTimeStamps:
             self.speckle_link.text(NO_SPECKLE)
         self.reload_volumes_and_images()
 
+    def toggle_restrict(self, *ignored):
+        e = self.restrict_images = not self.restrict_images
+        self.child_display.restrict = e
+        self.parent_display.restrict = e
+        if e:
+            self.restrict_link.text(YES_RESTRICT)
+        else:
+            self.restrict_link.text(NO_RESTRICT)
+        self.reload_volumes_and_images()
+
     def reload_volumes_and_images(self):
         self.child_display.reload_cached_volumes()
         self.parent_display.reload_cached_volumes()
@@ -592,7 +608,10 @@ class MaskImaging:
         if self.nontrivial() and restricted:
             r_image = np.where(self.restricted_label_array > 0, r_image, 0)
         elif mask or restricted:
-            r_image = np.where(self.label_array > 0, r_image, 0)
+            test_array = self.label_array
+            if restricted and self.nontrivial():
+                test_array = self.restricted_label_array
+            r_image = np.where(test_array > 0, r_image, 0)
         return r_image.max(axis=0)
 
     def nontrivial(self):
@@ -600,7 +619,7 @@ class MaskImaging:
 
     def extrusion(self, speckle_ratio=None, restricted=False):
         label_array = self.label_array
-        if restricted:
+        if restricted and self.nontrivial():
             label_array = self.restricted_label_array
         if speckle_ratio is not None:
             assert speckle_ratio > 0 and speckle_ratio < 1, "bad speckle ratio: " + repr(speckle_ratio)
@@ -652,6 +671,7 @@ class ImageAndLabels2d:
         self.enhance = False
         self.mask = False
         self.speckle = False
+        self.restrict = False
         self.reset(timestamp)
 
     def on_label_select(self, callback):
@@ -926,7 +946,7 @@ class ImageAndLabels2d:
         #if imaging.nontrivial() and self.mask:
         #    rimage = np.where(imaging.selected_label_mask, rimage, 0)
         #image2d = rimage.max(axis=0)  # maximum value projection.
-        image2d = imaging.max_value_projection(rimage, mask=self.mask, restricted=False)
+        image2d = imaging.max_value_projection(rimage, mask=self.mask, restricted=self.restrict)
         if self.enhance:
             image2d = colorizers.enhance_contrast(image2d, cutoff=0.05)
         img = colorizers.scale256(image2d)  # ???? xxxx
@@ -935,7 +955,7 @@ class ImageAndLabels2d:
         img = c_imaging.overlay_boundaries(img)
         # get labels with white outlines
         speckle_ratio = None
-        restricted = False
+        restricted = self.restrict
         if self.speckle:
             speckle_ratio = STD_SPECKLE_RATIO
         labels = imaging.extrusion(speckle_ratio=speckle_ratio, restricted=restricted)
