@@ -570,6 +570,7 @@ class CachedVolumeData:
 class MaskImaging:
 
     def __init__(self, label_array, selected_labels, label_to_color):
+        self.rotated_labels = None
         self.label_array = np.array(label_array, dtype=np.int32)
         self.selected_labels = selected_labels
         self.shape = self.label_array.shape
@@ -648,6 +649,7 @@ class ImageAndLabels2d:
 
     def __init__(self, side, timestamp=None, title="Image and Labels"):
         self.side = side
+        self.rotated_labels = self.rotated_image = None
         #self.timestamp = timestamp
         self.image_display = Image(height=side, width=side)
         self.labels_display = Image(height=side, width=side)
@@ -941,6 +943,10 @@ class ImageAndLabels2d:
 
     def display_images(self):
         imaging = self.labels_imaging
+        if imaging is None:
+            self.clear_images()
+            self.info("No imaging to display for " + repr(self.timestamp))
+            return
         c_imaging = self.compare_labels_imaging
         rimage = self.rotated_image
         #if imaging.nontrivial() and self.mask:
@@ -952,7 +958,8 @@ class ImageAndLabels2d:
         img = colorizers.scale256(image2d)  # ???? xxxx
         # add color boundaries to img
         img = imaging.overlay_boundaries(img)
-        img = c_imaging.overlay_boundaries(img)
+        if c_imaging is not None:
+            img = c_imaging.overlay_boundaries(img)
         # get labels with white outlines
         speckle_ratio = None
         restricted = self.restrict
