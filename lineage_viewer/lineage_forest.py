@@ -189,6 +189,9 @@ class TimeStamp(NodeGroup):
         self.ordinal = ordinal
         self.label_to_node = {}
 
+    def __repr__(self):
+        return "Timestamp(%s)" % self.ordinal
+
     def check_node(self, node):
         ord = self.ordinal
         assert ord == node.timestamp_ordinal, "node not in timestamp: " + repr([ord, node])
@@ -539,6 +542,8 @@ def make_forest_from_haydens_json_graph(json_graph, label_assignment=None, add_p
     #edges = json_graph['G_based_on_nn_combined']['Edges']
     nodes = edges = None
     # hack to handle random naming changes.
+    edges = json_graph.get("Edges")
+    nodes = json_graph.get("Nodes")
     for name in json_graph:
         graph = json_graph[name]
         if name.startswith("G"):
