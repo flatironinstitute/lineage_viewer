@@ -9,3 +9,5 @@ services:
     environment:
       - GIZMO_USE_SERVER_ADDRESS=localhost
       - GIZMO_USE_PORT=5050
+    # Load sample lineage data. Feel free to modify this command.
+    command: bash -c "cd examples/lineage_sample && python load_sample_lineage.py"
