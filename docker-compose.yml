@@ -1,0 +1,11 @@
+services:
+  lineage-viewer:
+    build: .
+    volumes:
+      - .:/app
+    working_dir: /app
+    ports:
+      - "5050:5050"
+    environment:
+      - GIZMO_USE_SERVER_ADDRESS=localhost
+      - GIZMO_USE_PORT=5050
