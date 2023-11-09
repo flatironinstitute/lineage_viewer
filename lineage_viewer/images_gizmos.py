@@ -169,6 +169,13 @@ class LineageViewer:
         self.update_label_selection()
 
     def ts_select_callback(self, ordinal):
+        self.info_area.modal_warning(
+            self.ts_select_callback_warned,
+            [ordinal],
+            "Loading time stamp: " + repr(ordinal)
+        )
+
+    def ts_select_callback_warned(self, ordinal):
         self.info("ts selected: " + repr(ordinal))
         try:
             tjson = self.forest.timestamp_region_json(ordinal)
