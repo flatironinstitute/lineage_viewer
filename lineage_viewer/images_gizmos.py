@@ -62,6 +62,10 @@ class LineageViewer:
     def info(self, text):
         self.info_area.text(text)
 
+    async def link(self):
+        await self.gizmo.link()
+        self.configure_gizmo()
+
     def configure_gizmo(self):
         self.lineage.configure_canvas(self.ts_select_callback)
         self.lineage.load_forest(self.forest)
