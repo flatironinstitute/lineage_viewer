@@ -618,11 +618,16 @@ class MaskImaging:
 
     def max_value_projection(self, r_image, mask=False, restricted=False):
         if self.nontrivial() and restricted:
-            r_image = np.where(self.restricted_label_array > 0, r_image, 0)
+            rla = self.restricted_label_array
+            if len(r_image.shape) > 3:
+                rla = rla.reshape(rla.shape + (1,))
+            r_image = np.where(rla > 0, r_image, 0)
         elif mask or restricted:
             test_array = self.label_array
             if restricted and self.nontrivial():
                 test_array = self.restricted_label_array
+            if len(r_image.shape) > 3:
+                test_array = test_array.reshape(test_array.shape + (1,))
             r_image = np.where(test_array > 0, r_image, 0)
         return r_image.max(axis=0)
 
@@ -760,7 +765,7 @@ class ImageAndLabels2d:
 
     def load_volumes(self, label_volume, image_volume):
         l_s = label_volume.shape
-        i_s = image_volume.shape
+        i_s = image_volume.shape[:3]
         if not HACK_SHAPES:
             assert l_s == i_s, "volume shapes don't match: " + repr([l_s, i_s])
         else:
