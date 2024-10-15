@@ -168,14 +168,14 @@ class LineageViewer:
         child_display._focus_node = parent_display._focus_node = None
         self.update_label_selection()
 
-    def ts_select_callback(self, ordinal):
+    def ts_select_callback(self, ordinal, special_ids=None):
         self.info_area.modal_warning(
             self.ts_select_callback_warned,
-            [ordinal],
+            [ordinal, special_ids],
             "Loading time stamp: " + repr(ordinal)
         )
 
-    def ts_select_callback_warned(self, ordinal):
+    def ts_select_callback_warned(self, ordinal, special_ids):
         self.info("ts selected: " + repr(ordinal))
         try:
             tjson = self.forest.timestamp_region_json(ordinal)
@@ -183,7 +183,7 @@ class LineageViewer:
             self.info("for ts %s got %s" % (ordinal, e))
             raise
         else:
-            self.detail.load_json(tjson)
+            self.detail.load_json(tjson, special_ids)
             self.compare.clear_images()
             self.compare.set_child_timestamp(ordinal)
             if ordinal > 0:

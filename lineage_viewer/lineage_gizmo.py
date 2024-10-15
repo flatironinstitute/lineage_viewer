@@ -36,8 +36,9 @@ class TimeSliceDetail:
     def update_selections(self, child_ids, parent_ids):
         do(self.detail_link.update_selections(child_ids, parent_ids))
 
-    def load_json(self, json_ob):
-        do(self.detail_link.load_json(json_ob))
+    def load_json(self, json_ob, special_ids=None):
+        special_ids = special_ids or {}
+        do(self.detail_link.load_json(json_ob, special_ids))
 
 class LineageDisplay(TimeSliceDetail):
 
