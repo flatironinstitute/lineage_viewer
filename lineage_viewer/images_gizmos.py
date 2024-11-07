@@ -206,6 +206,13 @@ class LineageViewer:
         #print("update selected ids", child_ids, parent_ids)
         self.child_ids = child_ids
         self.parent_ids = parent_ids
+        child_id = parent_id = None
+        if len(child_ids) == 1:
+            child_id = child_ids[0]
+        if len(parent_ids) == 1:
+            parent_id = parent_ids[0]
+        if child_id is not None or parent_id is not None:
+            self.update_selected_ids0(child_id, parent_id)
         compare = self.compare
         compare.child_display.select_ids(child_ids)
         compare.parent_display.select_ids(parent_ids)
@@ -754,6 +761,9 @@ class ImageAndLabels2d:
             return timestamp.label_to_node.get(focus_label)
         else:
             return None
+        
+    def focus_node(self):
+        return self._focus_node
 
     def shape(self):
         a = self.label_volume
