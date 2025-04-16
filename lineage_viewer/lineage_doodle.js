@@ -411,7 +411,8 @@ class TimeSliceDetail {
             var n = i2n[id];
             var x = n.x;
             var y = n.y;
-            var color = n.color || "#999";
+            var color = n.color || "rgb(100,100,100)";
+            var invcolor = invertColor(color);
             var label = n.label || "XXX";
             f.frame_rect({
                 x: x,
@@ -427,7 +428,7 @@ class TimeSliceDetail {
                 y: y + 0.3,
                 text: "" + label,
                 align: "center",
-                color: "white",
+                color: invcolor,
                 font:"italic 20px Courier",
             })
         }
@@ -635,6 +636,15 @@ class TimeSliceDetail {
         }
         return nearest;
     }
+};
+
+// convert a color string like "rgb(255,0,0)" to inverse like "rgb(0,255,255)"
+function invertColor(rgb){
+    var color = rgb.match(/\d+/g);
+    var r = (100 + parseInt(color[0])) % 256;
+    var g = (100 + parseInt(color[1])) % 256;
+    var b = (100 + parseInt(color[2])) % 256;
+    return `rgb(${r},${g},${b})`;
 };
 
 window.TimeSliceDetail = TimeSliceDetail
