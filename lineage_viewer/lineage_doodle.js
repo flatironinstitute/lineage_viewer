@@ -417,19 +417,21 @@ class TimeSliceDetail {
             f.frame_rect({
                 x: x,
                 y: y,
-                w: 0.6,
-                h: 0.6,
+                w: 0.9,
+                h: 0.8,
                 dx: 0.2,
                 dy: 0.2,
                 color: color,
             });
             f.text({
                 x: x + 0.5,
-                y: y + 0.3,
+                y: y + 0.6,
                 text: "" + label,
                 align: "center",
+                valign: "center",
                 color: invcolor,
-                font:"italic 20px Courier",
+                font:"12pt Tahoma",
+                degrees: 90
             })
         }
         // parent link lines        
