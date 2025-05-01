@@ -473,10 +473,10 @@ class TimeSliceDetail {
                     color: color,
                     x: node.x,
                     y: node.y,
-                    w: 0.8,
+                    w: 0.9,
                     h: 0.8,
-                    dx: 0.1,
-                    dy: 0.1,
+                    dx: 0.2,
+                    dy: 0.2,
                     fill: false,
                     lineWidth: 3,
                 });
