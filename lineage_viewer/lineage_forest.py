@@ -7,7 +7,7 @@ OO structure for cell lineage tracking.
 from array_gizmos import color_list
 import os
 import numpy as np
-
+import H5Gizmos as gz
 
 class Node:
 
@@ -507,13 +507,40 @@ class Forest:
             #print("updating", list(this_ts.id_to_node.keys()))
             id_to_node.update(this_ts.id_to_node)
         id_to_node_json = {}
-        offsets = sorted(set(node._offset for node in id_to_node.values()))
+        #offsets = sorted(set(node._offset for node in id_to_node.values()))
+        # for each node determine the relative right to left position, parents by label, child beneath parent
+        # parents first
+        ordinalm1 = ordinal - 1
+        default_offset = -1
+        for (id, node) in id_to_node.items():
+            node._detail_offset = default_offset
+            default_offset -= 1  # default offset
+            if node.timestamp_ordinal == ordinalm1:
+                # parent node, put it at the leftmost position
+                label = node.label or -1
+                #gz.force_print("parent node", node.node_id, "label", label)
+                node._detail_offset = label
+                node._child_offset = label - 0.1
+        # assign child offsets
+        for (id, node) in id_to_node.items():
+            if node.timestamp_ordinal != ordinalm1:
+                node._detail_offset = -1  # default
+                parent_id = node.parent.node_id
+                if parent_id in id_to_node:
+                    parent = id_to_node[parent_id]
+                    if len(parent.id_to_child) < 2:
+                        node._detail_offset = parent._detail_offset
+                    else:
+                        node._detail_offset = parent._child_offset
+                        parent._child_offset += 0.2
+            offsets = sorted(set(node._detail_offset for node in id_to_node.values()))
+        #gz.force_print("offsets", offsets)
         sordinals = sorted(ordinals)
         height = len(sordinals)
         for (id, node) in id_to_node.items():
             json_ob = node.json_object()
             # patch in relative geometry
-            json_ob["x"] = offsets.index(node._offset)
+            json_ob["x"] = offsets.index(node._detail_offset)
             json_ob["y"] = height - sordinals.index(node.timestamp_ordinal) - 1
             # child marker
             json_ob["is_child"] = (json_ob["timestamp_ordinal"] == ordinal)
