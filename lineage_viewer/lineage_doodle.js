@@ -429,7 +429,10 @@ class TimeSliceDetail {
                 text: "" + label,
                 align: "center",
                 valign: "center",
-                color: invcolor,
+                //color: invcolor,
+                color: "black",
+                background: "white",
+                //font: "12pt Arial",
                 font:"12pt Tahoma",
                 degrees: 90
             })
