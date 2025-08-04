@@ -433,8 +433,8 @@ class TimeSliceDetail {
                 color: "black",
                 background: "white",
                 //font: "12pt Arial",
-                font:"12pt Tahoma",
-                degrees: 90
+                font:"10pt Tahoma",
+                degrees: 45
             })
         }
         // parent link lines        
