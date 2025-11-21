@@ -690,6 +690,8 @@ class ImageAndLabels2d:
         #self.timestamp = timestamp
         self.image_display = Image(height=side, width=side)
         self.labels_display = Image(height=side, width=side)
+        self.image_display.css({"image-rendering": "pixelated"})
+        self.labels_display.css({"image-rendering": "pixelated"})
         self.focus_label = None
         self._focus_node = None
         displays = Shelf([
@@ -1045,6 +1047,8 @@ class ImageAndLabels2d:
         colored_labels = imaging.color_mapper[labels]
         white = [255,255,255]
         colored_labels = imaging.overlay_boundaries(colored_labels, white)
+        if c_imaging is not None:
+            colored_labels = c_imaging.overlay_boundaries(colored_labels, white)
         self.image_display.change_array(img)
         self.labels_display.change_array(colored_labels)
 
