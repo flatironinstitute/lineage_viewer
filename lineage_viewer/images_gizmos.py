@@ -590,27 +590,6 @@ class CompareTimeStamps:
             phi = adjust_range(self.phi + self.phi2)
             gamma = adjust_range(self.gamma + self.gamma2)
         rbuffer = operations3d.rotate3d(buffer, theta, phi, gamma)
-        # eliminate all zero planes
-        (I, J, K) = rbuffer.shape
-        minI = 0
-        while (minI < I) and (np.all(rbuffer[minI, :, :] == 0)):
-            minI += 1
-        maxI = I - 1
-        while (maxI >= minI) and (np.all(rbuffer[maxI, :, :] == 0)):
-            maxI -= 1
-        minJ = 0
-        while (minJ < J) and (np.all(rbuffer[:, minJ, :] == 0)):
-            minJ += 1
-        maxJ = J - 1
-        while (maxJ >= minJ) and (np.all(rbuffer[:, maxJ, :] == 0)):
-            maxJ -= 1
-        minK = 0
-        while (minK < K) and (np.all(rbuffer[:, :, minK] == 0)):
-            minK += 1
-        maxK = K - 1
-        while (maxK >= minK) and (np.all(rbuffer[:, :, maxK] == 0)):
-            maxK -= 1
-        rbuffer = rbuffer[minI:maxI+1, minJ:maxJ+1, minK:maxK+1]
         return rbuffer
 
 class CachedVolumeData:
@@ -838,16 +817,48 @@ class ImageAndLabels2d:
             self.image_volume = im
         self.volume_shape = self.label_volume.shape
 
+    def trim_black_borders(self, rimage, rlabels):
+        "trim black borders from rimage and trim rlabels to match"
+        rbuffer = rimage
+        [I, J, K] = rbuffer.shape
+        minI = 0
+        while (minI < I) and (np.all(rbuffer[minI, :, :] == 0)):
+            minI += 1
+        maxI = I - 1
+        while (maxI >= minI) and (np.all(rbuffer[maxI, :, :] == 0)):
+            maxI -= 1
+        minJ = 0
+        while (minJ < J) and (np.all(rbuffer[:, minJ, :] == 0)):
+            minJ += 1
+        maxJ = J - 1
+        while (maxJ >= minJ) and (np.all(rbuffer[:, maxJ, :] == 0)):
+            maxJ -= 1
+        minK = 0
+        while (minK < K) and (np.all(rbuffer[:, :, minK] == 0)):
+            minK += 1
+        maxK = K - 1
+        while (maxK >= minK) and (np.all(rbuffer[:, :, maxK] == 0)):
+            maxK -= 1
+        rimage = rimage[minI:maxI+1, minJ:maxJ+1, minK:maxK+1]
+        if rlabels is not None:
+            rlabels = rlabels[minI:maxI+1, minJ:maxJ+1, minK:maxK+1]
+        return (rimage, rlabels)
+
     def rotate_volumes(self, comparison, parent=False, stride=1):
         self.valid_projection = False # default
         #image2d = labels2d = None
+        rlabels = None
+        rimage = None
         if self.label_volume is not None:
             rlabels = comparison.rotate_image(self.label_volume, parent=parent, stride=stride)
             self.rotated_labels = rlabels
             #labels2d = operations3d.extrude0(rlabels)
         if self.image_volume is not None:
             rimage = comparison.rotate_image(self.image_volume, parent=parent, stride=stride)
+            (rimage, rlabels) = self.trim_black_borders(rimage, rlabels)
             self.rotated_image = rimage
+            self.rotated_labels = rlabels
+            #image2d = operations3d.extrude0(rimage)
             #image2d = rimage.max(axis=0)  # maximum value projection.
             #if self.enhance:
             #    image2d = colorizers.enhance_contrast(image2d, cutoff=0.05)
