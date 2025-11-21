@@ -5,7 +5,8 @@ Displays for labels and images
 
 import numpy as np
 from H5Gizmos import (
-    Stack, Slider, Image, Shelf, Button, Text, Input, RangeSlider, do, ClickableText)
+    Stack, Slider, Image, Shelf, Button, Text, Input, RangeSlider, do, ClickableText,
+    DropDownSelect)
 from H5Gizmos.python.file_selector import select_any_file
 from array_gizmos import colorizers, operations3d
 from scipy.ndimage import gaussian_filter
@@ -29,6 +30,8 @@ YES_RESTRICT = "✓ restricted"
 NO_RESTRICT = "✖ unrestricted"
 
 STD_SPECKLE_RATIO = 0.03
+
+STRIDES = [1, 2, 4, 8]
 
 class LineageViewer:
 
@@ -265,6 +268,7 @@ class CompareTimeStamps:
         self.forest = forest
         self.side = side
         self.title = title
+        self.stride = 1
         # gizmo scaffolding
         self.title_area = Text(self.title)
         self.title_area.resize(width=side * 2)
@@ -277,12 +281,15 @@ class CompareTimeStamps:
         self.mask_link = ClickableText(NO_MASK, on_click=self.toggle_mask)
         self.speckle_link = ClickableText(NO_SPECKLE, on_click=self.toggle_speckle)
         self.restrict_link = ClickableText(NO_RESTRICT, on_click=self.toggle_restrict)
+        stride_pairs = [(str(s), str(s)) for s in STRIDES]
+        self.stride_select = DropDownSelect(stride_pairs, on_click=self.project_and_display, legend="Stride")
         self.enhanced_images = False
         self.blur_images = False
         self.mask_images = False
         self.speckle_images = False
         self.restrict_images = False
         info_bar = [
+            self.stride_select,
             self.enhanced_link, 
             self.blur_link, 
             self.mask_link, 
@@ -497,7 +504,8 @@ class CompareTimeStamps:
                 # This should be wrapped in gz_jQuery?
                 do(slider.element.slider("option", "max", maximum))
                 do(slider.element.slider("option", "values", [0, maximum]))
-            self.info_area.text("Maxima: " + repr(list(M)))
+            maxima = map(int, M)
+            self.info_area.text("Maxima: " + repr(list(maxima)))
 
     def configure_gizmo(self):
         self.parent_display.configure_gizmo()
@@ -521,6 +529,8 @@ class CompareTimeStamps:
         return ts
 
     def project_and_display(self, *ignored):
+        if len(self.stride_select.selected_values) > 0:
+            self.stride = int(self.stride_select.selected_values[0])
         self.theta = self.theta_slider.value
         self.phi = self.phi_slider.value
         self.gamma = self.gamma_slider.value
@@ -536,9 +546,11 @@ class CompareTimeStamps:
         self.rotate_volumes()
         self.display_images()
 
-    def rotate_volumes(self):
-        self.parent_display.rotate_volumes(self, parent=True)
-        self.child_display.rotate_volumes(self, parent=False)
+    def rotate_volumes(self, stride=None):
+        if stride is None:
+            stride = self.stride
+        self.parent_display.rotate_volumes(self, parent=True, stride=stride)
+        self.child_display.rotate_volumes(self, parent=False, stride=stride)
 
     def display_images(self):
         self.parent_display.create_mask()
@@ -554,11 +566,13 @@ class CompareTimeStamps:
         self.parent_display.reset()
         self.child_display.reset()
 
-    def rotate_image(self, img, parent=False):
+    def rotate_image(self, img, parent=False, stride=1):
         sl = self.slicing
         simg = img
         if sl is not None:
             simg = operations3d.slice3(img, sl)
+        if stride > 1:
+            simg = simg[::stride, ::stride, ::stride]
         buffer = operations3d.rotation_buffer(simg)
         def adjust_range(theta):
             if theta > np.pi:
@@ -576,6 +590,27 @@ class CompareTimeStamps:
             phi = adjust_range(self.phi + self.phi2)
             gamma = adjust_range(self.gamma + self.gamma2)
         rbuffer = operations3d.rotate3d(buffer, theta, phi, gamma)
+        # eliminate all zero planes
+        (I, J, K) = rbuffer.shape
+        minI = 0
+        while (minI < I) and (np.all(rbuffer[minI, :, :] == 0)):
+            minI += 1
+        maxI = I - 1
+        while (maxI >= minI) and (np.all(rbuffer[maxI, :, :] == 0)):
+            maxI -= 1
+        minJ = 0
+        while (minJ < J) and (np.all(rbuffer[:, minJ, :] == 0)):
+            minJ += 1
+        maxJ = J - 1
+        while (maxJ >= minJ) and (np.all(rbuffer[:, maxJ, :] == 0)):
+            maxJ -= 1
+        minK = 0
+        while (minK < K) and (np.all(rbuffer[:, :, minK] == 0)):
+            minK += 1
+        maxK = K - 1
+        while (maxK >= minK) and (np.all(rbuffer[:, :, maxK] == 0)):
+            maxK -= 1
+        rbuffer = rbuffer[minI:maxI+1, minJ:maxJ+1, minK:maxK+1]
         return rbuffer
 
 class CachedVolumeData:
@@ -803,15 +838,15 @@ class ImageAndLabels2d:
             self.image_volume = im
         self.volume_shape = self.label_volume.shape
 
-    def rotate_volumes(self, comparison, parent=False):
+    def rotate_volumes(self, comparison, parent=False, stride=1):
         self.valid_projection = False # default
         #image2d = labels2d = None
         if self.label_volume is not None:
-            rlabels = comparison.rotate_image(self.label_volume, parent=parent)
+            rlabels = comparison.rotate_image(self.label_volume, parent=parent, stride=stride)
             self.rotated_labels = rlabels
             #labels2d = operations3d.extrude0(rlabels)
         if self.image_volume is not None:
-            rimage = comparison.rotate_image(self.image_volume, parent=parent)
+            rimage = comparison.rotate_image(self.image_volume, parent=parent, stride=stride)
             self.rotated_image = rimage
             #image2d = rimage.max(axis=0)  # maximum value projection.
             #if self.enhance:
