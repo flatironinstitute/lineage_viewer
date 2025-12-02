@@ -419,3 +419,33 @@ uses of these methods.
 
 It is possible to build the lineage forest structure manually using only the viewer interface
 by defining only node names for a forest but no parentage relationships.
+
+### Adding a custom image filter toggle
+
+To add your own 2d image filter for the intensity images which you can turn on and off from the user interface
+invoke the `viewer.image_callback` method of the `LineageViewer` after the viewer is
+created and before it is displayed in the startup script.  For example as follows:
+
+```python
+....
+
+def invert_callback(image2d):
+    """ Example image callback that inverts the image intensities.
+    """
+    max = image2d.max()
+    min = image2d.min()
+    inverted = max - (image2d - min)
+    return inverted
+
+viewer = images_gizmos.LineageViewer(F, 600, title="maddy data")
+viewer.image_callback("Invert", invert_callback)
+
+async def task():
+    await viewer.gizmo.link()
+    viewer.configure_gizmo()
+
+serve(task())
+```
+
+This adds an "Invert" toggle next to the other toggles below the image panels.
+

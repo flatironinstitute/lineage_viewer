@@ -29,6 +29,8 @@ YES_SPECKLE = "✓ speckled"
 NO_SPECKLE = "✖ unspeckled"
 YES_RESTRICT = "✓ restricted"
 NO_RESTRICT = "✖ unrestricted"
+YES_PREFIX = "✓ "
+NO_PREFIX = "✖ "
 
 STD_SPECKLE_RATIO = 0.03
 
@@ -65,6 +67,10 @@ class LineageViewer:
 
     def info(self, text):
         self.info_area.text(text)
+
+    def image_callback(self, name, callback):
+        # ("LineageViewer.image_callback", name, callback)
+        self.compare.image_callback(name, callback)
 
     async def link(self):
         await self.gizmo.link()
@@ -282,6 +288,8 @@ class CompareTimeStamps:
         self.mask_link = ClickableText(NO_MASK, on_click=self.toggle_mask)
         self.speckle_link = ClickableText(NO_SPECKLE, on_click=self.toggle_speckle)
         self.restrict_link = ClickableText(NO_RESTRICT, on_click=self.toggle_restrict)
+        self.configurable_link = ClickableText(NO_PREFIX + "(none)", on_click=self.toggle_configurable)
+        self.configurable_link.css({"display": "none"})
         stride_pairs = [(str(s), str(s)) for s in STRIDES]
         self.stride_select = DropDownSelect(stride_pairs, on_click=self.project_and_display, legend="Stride")
         self.enhanced_images = False
@@ -289,6 +297,9 @@ class CompareTimeStamps:
         self.mask_images = False
         self.speckle_images = False
         self.restrict_images = False
+        self.configurable_name = None
+        self.configurable_callback = None
+        self.do_callback = False
         info_bar = [
             self.stride_select,
             self.enhanced_link, 
@@ -296,6 +307,7 @@ class CompareTimeStamps:
             self.mask_link, 
             self.speckle_link,
             self.restrict_link,
+            self.configurable_link,
             self.info_area,
         ]
         self.displays = Stack([ 
@@ -473,6 +485,22 @@ class CompareTimeStamps:
             self.speckle_link.text(NO_SPECKLE)
         self.reload_volumes_and_images()
 
+    def toggle_configurable(self, *ignored):
+        callback = self.configurable_callback
+        if callback is None:
+            return # do nothing
+        test = self.do_callback = not self.do_callback
+        #print("toggle_configurable", test)
+        if test:
+            self.configurable_link.text(YES_PREFIX + self.configurable_name)
+            self.child_display.image_callback(callback)
+            self.parent_display.image_callback(callback)
+        else:
+            self.configurable_link.text(NO_PREFIX + self.configurable_name)
+            self.child_display.image_callback(None)
+            self.parent_display.image_callback(None)
+        self.reload_volumes_and_images()
+    
     def toggle_restrict(self, *ignored):
         e = self.restrict_images = not self.restrict_images
         self.child_display.restrict = e
@@ -546,6 +574,15 @@ class CompareTimeStamps:
         self.slicing = np.array(s, dtype=np.int)
         self.rotate_volumes()
         self.display_images()
+
+    def image_callback(self, name, callback):
+        self.configurable_name = name
+        self.configurable_link.text(NO_PREFIX + name)
+        self.configurable_link.css({"display": "flex"})
+        self.configurable_callback = callback
+        #self.child_display.image_callback(callback)
+        #self.parent_display.image_callback(callback)
+        #self.display_images()
 
     def rotate_volumes(self, stride=None):
         if stride is None:
@@ -721,7 +758,12 @@ class ImageAndLabels2d:
         self.mask = False
         self.speckle = False
         self.restrict = False
+        self.configurable_callback = None
         self.reset(timestamp)
+
+    def image_callback(self, callback):
+        #print("LineageViewer.image_callback", callback)
+        self.configurable_callback = callback
 
     def on_label_select(self, callback):
         self.on_label_select_callback = callback
@@ -1035,6 +1077,9 @@ class ImageAndLabels2d:
         #    rimage = np.where(imaging.selected_label_mask, rimage, 0)
         #image2d = rimage.max(axis=0)  # maximum value projection.
         image2d = imaging.max_value_projection(rimage, mask=self.mask, restricted=self.restrict)
+        if self.configurable_callback:
+            #print("LineageViewer.display_images: applying configurable_callback")
+            image2d = self.configurable_callback(image2d)
         if self.enhance:
             image2d = colorizers.enhance_contrast(image2d, cutoff=0.05)
         img = colorizers.scale256(image2d)  # ???? xxxx
