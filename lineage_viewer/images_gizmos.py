@@ -14,6 +14,7 @@ from . import lineage_gizmo
 from . import lineage_forest
 import json
 import os
+import time
 
 ENHANCE_CONTRAST = True
 HACK_SHAPES = True
@@ -566,7 +567,7 @@ class CompareTimeStamps:
         self.parent_display.reset()
         self.child_display.reset()
 
-    def rotate_image(self, img, parent=False, stride=1):
+    def rotate_image(self, img, parent=False, stride=1, timing=False):
         sl = self.slicing
         simg = img
         if sl is not None:
@@ -589,7 +590,14 @@ class CompareTimeStamps:
             theta = adjust_range(self.theta + self.theta2)
             phi = adjust_range(self.phi + self.phi2)
             gamma = adjust_range(self.gamma + self.gamma2)
+        if timing:
+            start_time = time.time()
         rbuffer = operations3d.rotate3d(buffer, theta, phi, gamma)
+        # xxxxx airplane rotation is slower???
+        #rbuffer = operations3d.airplane_rotate_array3d(buffer, theta, phi, gamma)
+        if timing:
+            end_time = time.time()
+            print(f"Rotation took {end_time - start_time} seconds")
         return rbuffer
 
 class CachedVolumeData:
