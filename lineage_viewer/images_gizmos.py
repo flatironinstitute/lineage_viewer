@@ -330,6 +330,28 @@ class CompareTimeStamps:
         self.phi2 = 0
         self.gamma2 = 0
         self.label_select_callback = None
+        self.mousedown_phi_gamma = None
+        self.child_display.rotation_callback = self.rotation_callback
+        self.parent_display.rotation_callback = self.rotation_callback
+
+    def rotation_callback(self, do_rotation, deltai, deltaj):
+        if do_rotation:
+            self.mousedown_phi_gamma = (self.phi, self.gamma)
+        else:
+            self.mousedown_phi_gamma = None
+            return
+        (phi0, gamma0) = self.mousedown_phi_gamma
+        def inrange(x):
+            while x > np.pi:
+                x = x - 2 * np.pi
+            while x < -np.pi:
+                x = x + 2 * np.pi
+            return x
+        self.phi = inrange(phi0 - deltaj)
+        self.gamma = inrange(gamma0 + deltai)
+        self.info_area.text(repr([self.phi, self.gamma]))
+        self.phi_slider.set_value(self.phi)
+        self.gamma_slider.set_value(self.gamma)
 
     def get_sliders(self, side):
         limit = np.pi
@@ -759,6 +781,8 @@ class ImageAndLabels2d:
         self.speckle = False
         self.restrict = False
         self.configurable_callback = None
+        self.mousedown_ij = None
+        self.rotation_callback = None
         self.reset(timestamp)
 
     def image_callback(self, callback):
@@ -921,7 +945,52 @@ class ImageAndLabels2d:
         self.info_area.text(text)
 
     def configure_gizmo(self):
+        ld = self.labels_display
+        ld.change_array(dummy_image)
         self.labels_display.on_pixel(self.pixel_callback)
+        id = self.image_display
+        id.change_array(dummy_image)
+        id.on_pixel(self.down_callback, type="pointerdown")
+        id.on_pixel(self.up_callback, type="pointerup")
+        id.on_pixel(self.move_callback, type="pointermove")
+        id.on_pixel(self.out_callback, type="pointerout")
+        do(id.element.attr("draggable", False))
+
+    def down_callback(self, event):
+        ij = (event["pixel_row"], event["pixel_column"])
+        self.info("down: " + repr(ij))
+        self.mousedown_ij = ij
+        rc = self.rotation_callback
+        if rc:
+            # start rotating
+            rc(True, 0, 0)
+
+    def up_callback(self, event):
+        ij = (event["pixel_row"], event["pixel_column"])
+        self.info("up: " + repr(ij))
+        self.mousedown_ij = None
+        rc = self.rotation_callback
+        if rc is not None:
+            # stop rotating
+            rc(False, None, None)
+
+    def move_callback(self, event):
+        ij = (event["pixel_row"], event["pixel_column"])
+        mij = self.mousedown_ij
+        rc = self.rotation_callback
+        self.info("move: " + repr(ij) + " mij " + repr(mij))
+        if mij is not None and rc is not None:
+            (i, j) = ij
+            (mi, mj) = mij
+            di = i - mi
+            dj = j - mj
+            # do the rotation
+            side = float(self.side)
+            self.info("rotate" + repr([di, dj]))
+            rc(True, di/side, dj/side)
+
+    def out_callback(self, event):
+        return self.up_callback(event)
 
     def selected_ids(self):
         return [node.node_id for node in self.label_to_nodes.values()]
