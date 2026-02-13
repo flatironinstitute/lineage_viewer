@@ -668,7 +668,8 @@ class CachedVolumeData:
 
 class MaskImaging:
 
-    def __init__(self, label_array, selected_labels, label_to_color):
+    def __init__(self, label_array, selected_labels, label_to_color, shaded=False):
+        self.shaded = shaded
         self.rotated_labels = None
         self.label_array = np.array(label_array, dtype=np.int32)
         self.selected_labels = selected_labels
@@ -686,6 +687,26 @@ class MaskImaging:
         self.color_mapper = np.zeros((self.maxlabel + 1, 3), dtype=np.int32)
         for label in label_to_color.keys():
             self.color_mapper[label] = label_to_color[label]
+        if shaded:
+            # add shaded colors and compute shadow indexing
+            original_colors = self.color_mapper
+            ncolors = len(original_colors)
+            nshades = ncolors * 3
+            shaded_colors = np.zeros([nshades, 3], dtype=np.int32)
+            shadow_index_map = np.zeros([nshades], dtype=np.int32)
+            for i in range(1, ncolors):
+                ishaded = i + ncolors
+                color = original_colors[i]
+                shaded_colors[i] = color
+                shadow_index_map[i] = ishaded
+                shaded_colors[ishaded] = color * 0.8
+                ishaded2 = ishaded + ncolors
+                shadow_index_map[ishaded] = ishaded2
+                shaded_colors[ishaded2] = color * 0.6
+            self.shadow_index_map = shadow_index_map
+            self.color_mapper = shaded_colors
+        else:
+            self.shadow_index_map = None
         self.selected_color_mapper = np.zeros(self.color_mapper.shape, dtype=np.int32)
         for label in selected_labels:
             self.selected_color_mapper[label] = self.color_mapper[label]
@@ -731,9 +752,14 @@ class MaskImaging:
             r = np.random.random(label_array.shape)
             filter = (r < speckle_ratio)
             label_array = np.where(filter, label_array, 0)
+        elif self.shaded:
+            shadow_index_map = self.shadow_index_map
+            shadowed = operations3d.shadow3d(label_array, shadow_index_map, axis=2)
+            shadowed2 = operations3d.shadow3d(shadowed, shadow_index_map, axis=1)
+            label_array = shadowed2
         return operations3d.extrude0(label_array)
 
-    def colored_extrusion(self, speckle_ratio=None):
+    def colored_extrusion(self, speckle_ratio=None): # not used?
         extrusion = self.extrusion(speckle_ratio=speckle_ratio)
         return self.color_mapper[extrusion]
 
@@ -783,6 +809,7 @@ class ImageAndLabels2d:
         self.configurable_callback = None
         self.mousedown_ij = None
         self.rotation_callback = None
+        self.shaded = True
         self.reset(timestamp)
 
     def image_callback(self, callback):
@@ -1088,7 +1115,7 @@ class ImageAndLabels2d:
             label = node.label
             if color is not None and label is not None:
                 label_to_color[label] = color
-        self.labels_imaging = MaskImaging(rotated_labels, labels, label_to_color)
+        self.labels_imaging = MaskImaging(rotated_labels, labels, label_to_color, self.shaded)
 
     def create_mask_delete(self):
         "create the focus mask"
