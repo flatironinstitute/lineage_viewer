@@ -29,6 +29,8 @@ YES_SPECKLE = "✓ speckled"
 NO_SPECKLE = "✖ unspeckled"
 YES_RESTRICT = "✓ restricted"
 NO_RESTRICT = "✖ unrestricted"
+YES_SHADED = "✓ shaded"
+NOT_SHADED = "✖ not shaded"
 YES_PREFIX = "✓ "
 NO_PREFIX = "✖ "
 
@@ -288,21 +290,24 @@ class CompareTimeStamps:
         self.mask_link = ClickableText(NO_MASK, on_click=self.toggle_mask)
         self.speckle_link = ClickableText(NO_SPECKLE, on_click=self.toggle_speckle)
         self.restrict_link = ClickableText(NO_RESTRICT, on_click=self.toggle_restrict)
+        self.shaded_link = ClickableText(NOT_SHADED, on_click=self.toggle_shaded)
         self.configurable_link = ClickableText(NO_PREFIX + "(none)", on_click=self.toggle_configurable)
         self.configurable_link.css({"display": "none"})
         stride_pairs = [(str(s), str(s)) for s in STRIDES]
         self.stride_select = DropDownSelect(stride_pairs, on_click=self.project_and_display, legend="Stride")
         self.enhanced_images = False
+        self.shaded = False
         self.blur_images = False
         self.mask_images = False
         self.speckle_images = False
         self.restrict_images = False
         self.configurable_name = None
-        self.configurable_callback = None
+        self.configurable_callback = None 
         self.do_callback = False
         info_bar = [
             self.stride_select,
             self.enhanced_link, 
+            self.shaded_link,
             self.blur_link, 
             self.mask_link, 
             self.speckle_link,
@@ -333,6 +338,16 @@ class CompareTimeStamps:
         self.mousedown_phi_gamma = None
         self.child_display.rotation_callback = self.rotation_callback
         self.parent_display.rotation_callback = self.rotation_callback
+
+    def toggle_shaded(self, *ignored):
+        e = self.shaded = not self.shaded
+        self.child_display.shaded = e
+        self.parent_display.shaded = e
+        if e:
+            self.shaded_link.text(YES_SHADED)
+        else:
+            self.shaded_link.text(NOT_SHADED)
+        self.reload_volumes_and_images()    
 
     def rotation_callback(self, do_rotation, deltai, deltaj):
         if do_rotation:
@@ -809,7 +824,7 @@ class ImageAndLabels2d:
         self.configurable_callback = None
         self.mousedown_ij = None
         self.rotation_callback = None
-        self.shaded = True
+        self.shaded = False
         self.reset(timestamp)
 
     def image_callback(self, callback):
