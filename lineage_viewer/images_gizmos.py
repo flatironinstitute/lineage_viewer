@@ -865,19 +865,20 @@ class ImageAndLabels2d:
                 self.load_volumes(cached.label_volume, cached.image_volume)
             else:
                 label_volume = forest.load_labels_for_timestamp(ordinal)
+                image_volume = None
                 if label_volume is None:
                     msg = "Timestamp %s has no label data" % ordinal
                     #print(msg)
                     self.info(msg)
+                    return # don't try to load image if no labels
                 else:
                     image_volume = forest.load_image_for_timestamp(ordinal)
+                    self.info("Loaded timestamp " + repr(ordinal))
                     if image_volume is None:
                         msg = "Timestamp %s has no image data" % ordinal
                         print(msg)
                         self.info(msg)
-                    else:
-                        self.info("Loaded timestamp " + repr(ordinal))
-                        self.load_volumes(label_volume, image_volume)
+                self.load_volumes(label_volume, image_volume)
 
     def reload_cached_volumes(self):
         cached = self.cached_volume_data
@@ -906,33 +907,40 @@ class ImageAndLabels2d:
         return a.shape
 
     def load_volumes(self, label_volume, image_volume):
+        no_image = (image_volume is None)
         l_s = label_volume.shape
-        i_s = image_volume.shape[:3]
-        if not HACK_SHAPES:
-            assert l_s == i_s, "volume shapes don't match: " + repr([l_s, i_s])
-        else:
-            if l_s != i_s:
-                min_s = tuple(np.minimum(l_s, i_s))
-                print ("hacking image and label shapes: ", l_s, i_s, min_s)
-                (I, J, K) = min_s
-                label_volume = label_volume[:I, :J, :K]
-                image_volume = image_volume[:I, :J, :K]
+        if not no_image:
+            i_s = image_volume.shape[:3]
+            if not HACK_SHAPES:
+                assert l_s == i_s, "volume shapes don't match: " + repr([l_s, i_s])
+            else:
+                if l_s != i_s:
+                    min_s = tuple(np.minimum(l_s, i_s))
+                    print ("hacking image and label shapes: ", l_s, i_s, min_s)
+                    (I, J, K) = min_s
+                    label_volume = label_volume[:I, :J, :K]
+                    image_volume = image_volume[:I, :J, :K]
         # need to fix this so slicing is unified across timestamps! xxxxx
         slicing = operations3d.positive_slicing(label_volume)
         self.label_volume = operations3d.slice3(label_volume, slicing)
-        self.image_volume = operations3d.slice3(image_volume, slicing)
+        if no_image:
+            self.image_volume = None
+        else:
+            self.image_volume = operations3d.slice3(image_volume, slicing)
         self.cached_volume_data = CachedVolumeData(self.timestamp.ordinal, label_volume, image_volume)
         # masking NOT HERE
         #if self.mask:
         #    self.image_volume = np.where((self.label_volume != 0), self.image_volume, 0)
         # image enhancement
-        if self.blur:
+        if self.blur and not no_image:
             im = self.unenhanced_image_volume = self.image_volume
             im = im.astype(np.float)
             im = gaussian_filter(im, sigma=1)
             im = colorizers.scaleN(im, to_max=10000)
             #im = colorizers.enhance_contrast(im,cutoff=0.01)
             self.image_volume = im
+        else:
+            self.unenhanced_image_volume = self.image_volume
         self.volume_shape = self.label_volume.shape
 
     def trim_black_borders(self, rimage, rlabels):
@@ -1187,17 +1195,21 @@ class ImageAndLabels2d:
         #if imaging.nontrivial() and self.mask:
         #    rimage = np.where(imaging.selected_label_mask, rimage, 0)
         #image2d = rimage.max(axis=0)  # maximum value projection.
-        image2d = imaging.max_value_projection(rimage, mask=self.mask, restricted=self.restrict)
-        if self.configurable_callback:
-            #print("LineageViewer.display_images: applying configurable_callback")
-            image2d = self.configurable_callback(image2d)
-        if self.enhance:
-            image2d = colorizers.enhance_contrast(image2d, cutoff=0.05)
-        img = colorizers.scale256(image2d)  # ???? xxxx
-        # add color boundaries to img
-        img = imaging.overlay_boundaries(img)
-        if c_imaging is not None:
-            img = c_imaging.overlay_boundaries(img)
+        if rimage is not None:
+            image2d = imaging.max_value_projection(rimage, mask=self.mask, restricted=self.restrict)
+            if self.configurable_callback:
+                #print("LineageViewer.display_images: applying configurable_callback")
+                image2d = self.configurable_callback(image2d)
+            if self.enhance:
+                image2d = colorizers.enhance_contrast(image2d, cutoff=0.05)
+            img = colorizers.scale256(image2d)  # ???? xxxx
+            # add color boundaries to img
+            img = imaging.overlay_boundaries(img)
+            if c_imaging is not None:
+                img = c_imaging.overlay_boundaries(img)
+        else:
+            # make a blank image so mouse events work
+            img = np.zeros(imaging.label_array.shape[:2], dtype=np.float32)
         # get labels with white outlines
         speckle_ratio = None
         restricted = self.restrict
