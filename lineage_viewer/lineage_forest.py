@@ -515,24 +515,25 @@ class Forest:
         for (id, node) in id_to_node.items():
             node._detail_offset = default_offset
             default_offset -= 1  # default offset
-            if node.timestamp_ordinal == ordinalm1:
+            if node.timestamp_ordinal == ordinalm1 or node.parent is None:
                 # parent node, put it at the leftmost position
                 label = node.label or -1
-                #gz.force_print("parent node", node.node_id, "label", label)
+                print("parent node", node.node_id, "label", label)
                 node._detail_offset = label
                 node._child_offset = label - 0.1
         # assign child offsets
         for (id, node) in id_to_node.items():
             if node.timestamp_ordinal != ordinalm1:
-                node._detail_offset = -1  # default
-                parent_id = node.parent.node_id
-                if parent_id in id_to_node:
-                    parent = id_to_node[parent_id]
-                    if len(parent.id_to_child) < 2:
-                        node._detail_offset = parent._detail_offset
-                    else:
-                        node._detail_offset = parent._child_offset
-                        parent._child_offset += 0.2
+                #node._detail_offset = -1  # default
+                if node.parent is not None:
+                    parent_id = node.parent.node_id
+                    if parent_id in id_to_node:
+                        parent = id_to_node[parent_id]
+                        if len(parent.id_to_child) < 2:
+                            node._detail_offset = parent._detail_offset
+                        else:
+                            node._detail_offset = parent._child_offset
+                            parent._child_offset += 0.2
             offsets = sorted(set(node._detail_offset for node in id_to_node.values()))
         #gz.force_print("offsets", offsets)
         sordinals = sorted(ordinals)
