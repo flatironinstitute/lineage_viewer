@@ -518,7 +518,7 @@ class Forest:
             if node.timestamp_ordinal == ordinalm1 or node.parent is None:
                 # parent node, put it at the leftmost position
                 label = node.label or -1
-                print("parent node", node.node_id, "label", label)
+                #print("parent node", node.node_id, "label", label)
                 node._detail_offset = label
                 node._child_offset = label - 0.1
         # assign child offsets
