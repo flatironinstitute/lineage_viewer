@@ -734,7 +734,7 @@ class MaskImaging:
                 projected = operations3d.extrude0(target)
                 mask = colorizers.boundary_image(projected, 1)
                 if boundaries is None:
-                    boundaries = mask * label
+                    boundaries = mask.astype(np.int32) * label
                 else:
                     boundaries = np.choose(mask, [boundaries, label])
         self.boundaries = boundaries
