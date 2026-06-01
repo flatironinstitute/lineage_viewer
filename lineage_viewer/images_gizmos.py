@@ -642,6 +642,47 @@ class CompareTimeStamps:
         self.child_display.reset()
 
     def rotate_image(self, img, parent=False, stride=1, timing=False):
+        from resample3 import matrices
+        from resample3.resample import sample
+        sl = self.slicing
+        simg = img
+        if sl is not None:
+            simg = operations3d.slice3(img, sl)
+        if stride > 1:
+            simg = simg[::stride, ::stride, ::stride]
+        rx = self.theta
+        ry = self.phi
+        rz = self.gamma
+        (I, J, K) = from_shape = simg.shape
+        diagonal = int(np.ceil(np.sqrt(I**2 + J**2 + K**2)))
+        to_shape = (diagonal, diagonal, diagonal)
+        center = np.array(to_shape) / 2.0
+        from_origin = matrices.translation_matrix(I/2, J/2, K/2)
+        #print("from_origin", from_origin)
+        to_origin = matrices.translation_matrix(*(-center))
+        #print("to_origin", to_origin)
+        rotx = matrices.rotation_matrix_x(rx)
+        roty = matrices.rotation_matrix_y(ry)
+        rotz = matrices.rotation_matrix_z(rz)
+        rotation = rotx @ roty @ rotz
+        # debugging -- use identity
+        #rotation = np.eye(4)
+        matrix = from_origin @ rotation @ to_origin
+        # debugging
+        #matrix = np.eye(4)
+        #matrix = to_origin
+        #matrix = from_origin
+        #scales = None
+        #matrix = projection_matrix(
+        #    from_shape=from_shape, 
+        #    to_shape=to_shape, 
+        #    rx=rx, ry=ry, rz=rz, scales=scales)
+        #print("img dtype", img.dtype)
+        output_volume = sample(simg, matrix, to_shape)
+        return output_volume
+
+    def rotate_image0(self, img, parent=False, stride=1, timing=False):
+        # deprecated.
         sl = self.slicing
         simg = img
         if sl is not None:
@@ -922,11 +963,13 @@ class ImageAndLabels2d:
                     image_volume = image_volume[:I, :J, :K]
         # need to fix this so slicing is unified across timestamps! xxxxx
         slicing = operations3d.positive_slicing(label_volume)
-        self.label_volume = operations3d.slice3(label_volume, slicing)
+        # force labels to int32
+        self.label_volume = operations3d.slice3(label_volume, slicing).astype(np.int32)
         if no_image:
             self.image_volume = None
         else:
-            self.image_volume = operations3d.slice3(image_volume, slicing)
+            # force image to float32
+            self.image_volume = operations3d.slice3(image_volume, slicing).astype(np.float32)
         self.cached_volume_data = CachedVolumeData(self.timestamp.ordinal, label_volume, image_volume)
         # masking NOT HERE
         #if self.mask:
@@ -934,11 +977,12 @@ class ImageAndLabels2d:
         # image enhancement
         if self.blur and not no_image:
             im = self.unenhanced_image_volume = self.image_volume
-            im = im.astype(np.float)
+            # force image to float32
+            #im = im.astype(np.float32)
             im = gaussian_filter(im, sigma=1)
             im = colorizers.scaleN(im, to_max=10000)
             #im = colorizers.enhance_contrast(im,cutoff=0.01)
-            self.image_volume = im
+            self.image_volume = im.astype(np.float32)
         else:
             self.unenhanced_image_volume = self.image_volume
         self.volume_shape = self.label_volume.shape
