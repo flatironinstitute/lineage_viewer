@@ -126,7 +126,7 @@ class LineageViewer:
             raise
         else:
             json_ob = self.forest.json_ob(exclude_isolated=False)
-            json.dump(json_ob, outfile)
+            json.dump(json_ob, outfile, indent=2)
             outfile.close()
             self.info("lineage stored to " + repr(filename))
 
