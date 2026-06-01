@@ -16,7 +16,9 @@ setup(
     url=url,
     install_requires=[
         "numpy", 
-        "scipy", 
+        "scipy",
+        "h5gizmos",
+        "resample3",
         ],
     license="MIT"
 )
