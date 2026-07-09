@@ -534,7 +534,13 @@ class Forest:
                         else:
                             node._detail_offset = parent._child_offset
                             parent._child_offset += 0.2
-            offsets = sorted(set(node._detail_offset for node in id_to_node.values()))
+        # hack fix for isolated nodes
+        max_detail_offset = max(node._detail_offset for node in id_to_node.values())
+        for (id, node) in id_to_node.items():
+            if node.timestamp_ordinal != ordinalm1 and node.parent is None:
+                node._detail_offset = max_detail_offset + 1
+                max_detail_offset += 1
+        offsets = sorted(set(node._detail_offset for node in id_to_node.values()))
         #gz.force_print("offsets", offsets)
         sordinals = sorted(ordinals)
         height = len(sordinals)
