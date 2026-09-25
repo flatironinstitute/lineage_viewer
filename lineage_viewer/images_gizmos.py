@@ -313,13 +313,14 @@ class CompareTimeStamps:
             self.speckle_link,
             self.restrict_link,
             self.configurable_link,
-            self.info_area,
+            #self.info_area,
         ]
         self.displays = Stack([ 
             self.title_area,
             self.parent_display.gizmo,
             self.child_display.gizmo,
             info_bar,
+            self.info_area
         ])
         sliders = self.get_sliders(side)
         self.gizmo = Shelf([ 
