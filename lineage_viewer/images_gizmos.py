@@ -306,13 +306,13 @@ class CompareTimeStamps:
         self.do_callback = False
         info_bar = [
             self.stride_select,
-            self.enhanced_link, 
-            self.shaded_link,
-            self.blur_link, 
-            self.mask_link, 
-            self.speckle_link,
+            [self.enhanced_link, 
+            self.shaded_link],
+            [self.blur_link, 
+            self.mask_link], 
+            [self.speckle_link,
             self.restrict_link,
-            self.configurable_link,
+            self.configurable_link],
             #self.info_area,
         ]
         self.displays = Stack([ 
