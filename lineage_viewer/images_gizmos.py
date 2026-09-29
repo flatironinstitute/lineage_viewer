@@ -906,12 +906,19 @@ class ImageAndLabels2d:
                 #print ("using cached volumes for", ordinal)
                 self.load_volumes(cached.label_volume, cached.image_volume)
             else:
+                self.cached_volume_data = None
+                # defaults:
+                self.image_volume = None
+                self.label_volume = np.zeros((2,2,2), dtype=np.int16)
                 label_volume = forest.load_labels_for_timestamp(ordinal)
                 image_volume = None
                 if label_volume is None:
                     msg = "Timestamp %s has no label data" % ordinal
                     #print(msg)
                     self.info(msg)
+                    #self.cached_volume_data = None
+                    self.clear_images()
+                    #raise ValueError(msg) # debugging
                     return # don't try to load image if no labels
                 else:
                     image_volume = forest.load_image_for_timestamp(ordinal)
@@ -1027,13 +1034,13 @@ class ImageAndLabels2d:
         if self.image_volume is not None:
             rimage = comparison.rotate_image(self.image_volume, parent=parent, stride=stride)
             (rimage, rlabels) = self.trim_black_borders(rimage, rlabels)
-            self.rotated_image = rimage
-            self.rotated_labels = rlabels
-            #image2d = operations3d.extrude0(rimage)
-            #image2d = rimage.max(axis=0)  # maximum value projection.
-            #if self.enhance:
-            #    image2d = colorizers.enhance_contrast(image2d, cutoff=0.05)
-            #self.valid_projection = True
+        self.rotated_image = rimage
+        self.rotated_labels = rlabels
+        #image2d = operations3d.extrude0(rimage)
+        #image2d = rimage.max(axis=0)  # maximum value projection.
+        #if self.enhance:
+        #    image2d = colorizers.enhance_contrast(image2d, cutoff=0.05)
+        #self.valid_projection = True
         #self.load_images(image2d, labels2d)
 
     def info(self, text):
