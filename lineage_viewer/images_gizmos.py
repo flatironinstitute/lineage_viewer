@@ -1279,8 +1279,12 @@ class ImageAndLabels2d:
         colored_labels = imaging.overlay_boundaries(colored_labels, white)
         if c_imaging is not None:
             colored_labels = c_imaging.overlay_boundaries(colored_labels, white)
+        # compute the max value of rgb for each pixel
+        max_rgb = colored_labels.max(axis=2).reshape(colored_labels.shape[:2] + (1,))
+        # where the max rgb is 0, set to random value 0..50
+        whitened_labels = np.where(max_rgb == 0, np.random.randint(0, 50, colored_labels.shape, dtype=np.uint8), colored_labels)
         self.image_display.change_array(img)
-        self.labels_display.change_array(colored_labels)
+        self.labels_display.change_array(whitened_labels)
 
     def display_images_delete(self):
         #label = self.focus_label
