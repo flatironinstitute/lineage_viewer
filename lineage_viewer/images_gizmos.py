@@ -741,7 +741,9 @@ class MaskImaging:
             self.label_mapper[label] = label
         self.restricted_label_array = self.label_mapper[self.label_array]
         self.selected_label_mask = (self.restricted_label_array > 0).astype(np.uint8)
-        self.color_mapper = np.zeros((self.maxlabel + 1, 3), dtype=np.int32)
+        #self.color_mapper = np.zeros((self.maxlabel + 1, 3), dtype=np.int32)
+        self.color_mapper = np.full((self.maxlabel + 1, 3), 128, dtype=np.int32)
+        self.color_mapper[0] = 0
         for label in label_to_color.keys():
             self.color_mapper[label] = label_to_color[label]
         if shaded:
