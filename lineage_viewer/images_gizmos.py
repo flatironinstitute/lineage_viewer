@@ -648,7 +648,12 @@ class CompareTimeStamps:
         sl = self.slicing
         simg = img
         if sl is not None:
-            simg = operations3d.slice3(img, sl)
+            #simg = operations3d.slice3(img, sl)
+            [[imin,imax],[jmin,jmax],[kmin,kmax]] = sl
+            sliced = np.zeros_like(img)
+            sliced[imin:imax, jmin:jmax, kmin:kmax] = img[imin:imax, jmin:jmax, kmin:kmax]
+            simg = sliced
+            #raise ValueError("debugging")
         if stride > 1:
             simg = simg[::stride, ::stride, ::stride]
         rx = self.theta
@@ -997,8 +1002,26 @@ class ImageAndLabels2d:
             self.unenhanced_image_volume = self.image_volume
         self.volume_shape = self.label_volume.shape
 
+    def trim_uniform_margin(self, rimage, rlabels):
+        "trim margin of same size from all sides to remove zero borders"
+        margin = 0
+        limit = min(rimage.shape) // 2 - 1
+        for test in range(1, limit):
+            if not np.all(rimage[test, :, :] == 0):
+                break
+            if not np.all(rimage[:, test, :] == 0):
+                break
+            if not np.all(rimage[:, :, test] == 0):
+                break
+            margin = test
+        rimage = rimage[margin:-margin, margin:-margin, margin:-margin]
+        if rlabels is not None:
+            rlabels = rlabels[margin:-margin, margin:-margin, margin:-margin]
+        return (rimage, rlabels)
+
     def trim_black_borders(self, rimage, rlabels):
         "trim black borders from rimage and trim rlabels to match"
+        # historical, not used.
         rbuffer = rimage
         [I, J, K] = rbuffer.shape
         minI = 0
@@ -1035,7 +1058,8 @@ class ImageAndLabels2d:
             #labels2d = operations3d.extrude0(rlabels)
         if self.image_volume is not None:
             rimage = comparison.rotate_image(self.image_volume, parent=parent, stride=stride)
-            (rimage, rlabels) = self.trim_black_borders(rimage, rlabels)
+            #(rimage, rlabels) = self.trim_black_borders(rimage, rlabels)
+            (rimage, rlabels) = self.trim_uniform_margin(rimage, rlabels)
         self.rotated_image = rimage
         self.rotated_labels = rlabels
         #image2d = operations3d.extrude0(rimage)
